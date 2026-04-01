@@ -1,0 +1,73 @@
+{
+  "suite": "user-session",
+  "description": "用户会话管理测试",
+  "cases": [
+    {
+      "id": "SES-001",
+      "name": "检测登录态",
+      "description": "检查页面上的登录状态标识",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告页面右上角是否有登录按钮或用户头像" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SES-002",
+      "name": "用户菜单检查",
+      "description": "检查用户相关菜单",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告页面导航栏中与用户相关的按钮或链接" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SES-003",
+      "name": "登录入口位置",
+      "description": "确认登录入口位置",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "描述登录按钮的位置和文字内容" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SES-004",
+      "name": "需登录页面拦截",
+      "description": "访问需要登录的页面时的行为",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/user/downloads" } },
+        { "tool": "get_page_state" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SES-005",
+      "name": "Cookie 检查",
+      "description": "检查页面的 Cookie 信息",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "执行 JavaScript: document.cookie.split(';').length，报告 cookie 数量" } }
+      ]
+    },
+    {
+      "id": "SES-006",
+      "name": "LocalStorage 检查",
+      "description": "检查 localStorage 存储信息",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "执行 JavaScript: Object.keys(localStorage).length，报告数量" } }
+      ]
+    },
+    {
+      "id": "SES-007",
+      "name": "SessionStorage 检查",
+      "description": "检查 sessionStorage 存储信息",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "执行 JavaScript: Object.keys(sessionStorage).length，报告 sessionStorage 键数量" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "suite": "scroll-viewport",
+  "description": "滚动和视口操作测试",
+  "cases": [
+    {
+      "id": "SCR-001",
+      "name": "向下滚动一页",
+      "description": "使用 scroll 工具向下滚动一个页面高度",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "screenshot", "note": "滚动前截图" },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 1 } },
+        { "tool": "screenshot", "note": "滚动后截图对比" }
+      ]
+    },
+    {
+      "id": "SCR-002",
+      "name": "向下滚动多页",
+      "description": "连续向下滚动多个页面",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 3 } },
+        { "tool": "screenshot" },
+        { "tool": "get_page_state", "note": "验证滚动后的 DOM 状态" }
+      ]
+    },
+    {
+      "id": "SCR-003",
+      "name": "向上滚动",
+      "description": "先向下滚动再向上滚动回来",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 3 } },
+        { "tool": "screenshot", "note": "在页面底部" },
+        { "tool": "scroll", "args": { "direction": "up", "pages": 3 } },
+        { "tool": "screenshot", "note": "回到顶部" }
+      ]
+    },
+    {
+      "id": "SCR-004",
+      "name": "水平向右滚动",
+      "description": "在有横向滚动条的页面上向右滚动",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "scroll", "args": { "direction": "right", "pages": 1 } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SCR-005",
+      "name": "水平向左滚动",
+      "description": "先向右滚动再向左滚动回来",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "scroll", "args": { "direction": "right", "pages": 1 } },
+        { "tool": "scroll", "args": { "direction": "left", "pages": 1 } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SCR-006",
+      "name": "滚动到页面底部",
+      "description": "使用自然语言任务滚动到页面底部",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "滚动到页面最底部，直到能看到 footer 区域" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SCR-007",
+      "name": "滚动到指定元素",
+      "description": "通过自然语言指令滚动到特定元素",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "向下滚动页面直到能看到 footer 区域" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SCR-008",
+      "name": "滚动后点击元素",
+      "description": "滚动到不可见区域后点击该区域的元素",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 2 } },
+        { "tool": "execute_task", "args": { "task": "点击当前可见区域内的第一个按钮或链接" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SCR-009",
+      "name": "懒加载内容触发",
+      "description": "滚动触发懒加载内容",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "note": "记录初始 DOM 状态" },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 5 } },
+        { "tool": "get_page_state", "note": "对比 DOM 变化，检查是否有新加载的内容" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "SCR-010",
+      "name": "返回顶部按钮",
+      "description": "测试页面上的返回顶部按钮",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 5 } },
+        { "tool": "execute_task", "args": { "task": "如果页面右下角出现了返回顶部的按钮，点击它回到页面顶部" } },
+        { "tool": "screenshot" }
+      ]
+    }
+  ]
+}

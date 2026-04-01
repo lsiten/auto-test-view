@@ -1,0 +1,125 @@
+{
+  "suite": "captcha-verification",
+  "description": "验证码和人机验证场景测试",
+  "cases": [
+    {
+      "id": "CAP-001",
+      "name": "检测验证码类型",
+      "description": "识别页面上出现的验证码类型",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有验证码组件" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-002",
+      "name": "图片验证码识别",
+      "description": "检测并描述图片验证码",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有图片验证码" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-003",
+      "name": "验证码刷新",
+      "description": "检查验证码刷新功能",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有验证码刷新按钮" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-004",
+      "name": "滑块验证码检测",
+      "description": "检测滑块验证码组件",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有滑块验证码" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-005",
+      "name": "reCAPTCHA 检测",
+      "description": "检测 reCAPTCHA 或 hCaptcha",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有 reCAPTCHA" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-006",
+      "name": "安全组件检查",
+      "description": "检查安全组件",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有登录按钮" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-007",
+      "name": "验证码输入框检测",
+      "description": "检测页面上的验证码输入框",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有验证码输入框" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-008",
+      "name": "点选验证码检测",
+      "description": "检测点选类验证码",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有点选类验证码" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-009",
+      "name": "搜索结果验证码检测",
+      "description": "在搜索结果页检测验证码",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com/s?wd=test" } },
+        { "tool": "execute_task", "args": { "task": "报告搜索结果页面是否有验证码" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-010",
+      "name": "安全提示检测",
+      "description": "检测页面安全提示",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有安全验证提示" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-011",
+      "name": "表单保护检测",
+      "description": "检测表单防护机制",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告搜索框旁边是否有安全验证" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CAP-012",
+      "name": "隐藏安全字段检测",
+      "description": "检测隐藏的安全字段",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "执行 JavaScript: document.querySelectorAll('input[type=hidden]').length，报告隐藏输入框数量" } }
+      ]
+    }
+  ]
+}

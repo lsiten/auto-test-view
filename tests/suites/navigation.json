@@ -1,0 +1,64 @@
+{
+  "suite": "navigation",
+  "description": "页面导航相关操作测试",
+  "cases": [
+    {
+      "id": "NAV-001",
+      "name": "基础 URL 导航",
+      "description": "导航到指定 URL 并验证页面加载成功",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "assert": { "url_contains": "camscanner.com" } }
+      ]
+    },
+    {
+      "id": "NAV-002",
+      "name": "跨域导航",
+      "description": "从一个域名导航到另一个域名",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "get_page_state", "assert": { "url_contains": "baidu.com" } }
+      ]
+    },
+    {
+      "id": "NAV-003",
+      "name": "子页面导航",
+      "description": "导航到网站内部子页面",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "click_element", "args": { "index": 0 }, "note": "点击第一个可交互元素进行子页面导航" },
+        { "tool": "get_page_state", "note": "验证页面状态已更新" }
+      ]
+    },
+    {
+      "id": "NAV-004",
+      "name": "带查询参数的 URL 导航",
+      "description": "导航到包含查询参数的 URL",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com/s?wd=camscanner" } },
+        { "tool": "get_page_state", "assert": { "url_contains": "wd=camscanner" } }
+      ]
+    },
+    {
+      "id": "NAV-005",
+      "name": "带锚点的 URL 导航",
+      "description": "导航到包含锚点的 URL",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh#features" } },
+        { "tool": "get_page_state", "assert": { "url_contains": "#features" } }
+      ]
+    },
+    {
+      "id": "NAV-006",
+      "name": "页面刷新后 page-agent 重新注入",
+      "description": "导航到同一页面验证 page-agent 重新注入",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_status", "assert": { "has_status": true } },
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_status", "assert": { "has_status": true } }
+      ]
+    }
+  ]
+}

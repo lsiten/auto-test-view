@@ -1,0 +1,116 @@
+{
+  "timestamp": "2026-04-01T06:25:44.849Z",
+  "duration": 345935,
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0
+  },
+  "suites": [
+    {
+      "suite": "download-test",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "id": "DL-001",
+          "name": "触发文件下载",
+          "status": "pass",
+          "duration": 306506,
+          "stepResults": [
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://www.camscanner.com/zh-tw\",\n  \"title\": \"掃描全能王 - 文字圖片掃描識別, PDF轉Word, 文檔格式轉換, 在線編輯器",
+              "url": "https://www.camscanner.com/zh-tw"
+            },
+            {
+              "tool": "execute_task",
+              "status": "pass",
+              "response": "Task execution failed: Command timed out after 300000ms: execute_task",
+              "url": "https://www.camscanner.com/zh-tw"
+            },
+            {
+              "tool": "screenshot",
+              "status": "pass",
+              "response": "{\n  \"path\": \"/var/folders/f4/d07rfjgs4pj7bp6x3sw2dtj5rjm0z1/T/screenshot-1775024705392.png\"\n}",
+              "url": "https://www.camscanner.com/zh-tw"
+            },
+            {
+              "tool": "get_page_state",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://www.camscanner.com/login\",\n  \"title\": \"CamScanner\",\n  \"header\": \"Current Page: [",
+              "url": "https://www.camscanner.com/login"
+            }
+          ]
+        },
+        {
+          "id": "DL-002",
+          "name": "下载页面下载测试",
+          "status": "pass",
+          "duration": 30448,
+          "stepResults": [
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://v3.camscanner.com/user/downloads\",\n  \"title\": \"CamScanner\"\n}",
+              "url": "https://v3.camscanner.com/user/downloads"
+            },
+            {
+              "tool": "screenshot",
+              "status": "pass",
+              "response": "{\n  \"path\": \"/var/folders/f4/d07rfjgs4pj7bp6x3sw2dtj5rjm0z1/T/screenshot-1775024707897.png\"\n}",
+              "url": "https://v3.camscanner.com/user/downloads"
+            },
+            {
+              "tool": "execute_task",
+              "status": "pass",
+              "response": "{\n  \"success\": false,\n  \"data\": \"当前页面没有下载按钮。页面显示404错误信息：\\\"Error 404 - Oops, it seems that the web pa",
+              "url": "https://v3.camscanner.com/user/downloads"
+            },
+            {
+              "tool": "screenshot",
+              "status": "pass",
+              "response": "{\n  \"path\": \"/var/folders/f4/d07rfjgs4pj7bp6x3sw2dtj5rjm0z1/T/screenshot-1775024735860.png\"\n}",
+              "url": "https://v3.camscanner.com/user/downloads"
+            }
+          ]
+        },
+        {
+          "id": "DL-003",
+          "name": "直接触发下载链接",
+          "status": "pass",
+          "duration": 8979,
+          "stepResults": [
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://www.baidu.com/\",\n  \"title\": \"百度一下，你就知道\"\n}",
+              "url": "https://www.baidu.com/"
+            },
+            {
+              "tool": "execute_task",
+              "status": "pass",
+              "response": "{\n  \"success\": false,\n  \"data\": \"抱歉，我无法直接执行JavaScript代码。作为一个浏览器自动化代理，我只能通过点击、输入文本、选择下拉菜单等方式与网页交互，而不能",
+              "url": "https://www.baidu.com/"
+            },
+            {
+              "tool": "screenshot",
+              "status": "pass",
+              "response": "{\n  \"path\": \"/var/folders/f4/d07rfjgs4pj7bp6x3sw2dtj5rjm0z1/T/screenshot-1775024744828.png\"\n}",
+              "url": "https://www.baidu.com/"
+            },
+            {
+              "tool": "get_page_state",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://www.baidu.com/\",\n  \"title\": \"百度一下，你就知道\",\n  \"header\": \"Current Page: [百度一下，你就知道](",
+              "url": "https://www.baidu.com/"
+            }
+          ]
+        }
+      ],
+      "duration": 345934
+    }
+  ]
+}

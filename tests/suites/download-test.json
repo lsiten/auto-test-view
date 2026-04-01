@@ -1,0 +1,39 @@
+{
+  "suite": "download-test",
+  "description": "下载弹窗拦截测试",
+  "cases": [
+    {
+      "id": "DL-001",
+      "name": "触发文件下载",
+      "description": "导航到有下载链接的页面并点击下载，验证不会弹出下载弹窗",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "找到页面上的下载按钮或下载链接并点击" } },
+        { "tool": "screenshot" },
+        { "tool": "get_page_state" }
+      ]
+    },
+    {
+      "id": "DL-002",
+      "name": "下载页面下载测试",
+      "description": "在下载页面触发下载",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/user/downloads" } },
+        { "tool": "screenshot" },
+        { "tool": "execute_task", "args": { "task": "如果页面上有下载按钮，点击它；如果没有，报告当前页面内容" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "DL-003",
+      "name": "直接触发下载链接",
+      "description": "通过navigate直接访问下载URL测试拦截",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "执行 JavaScript: (function(){var a=document.createElement('a');a.href='data:text/plain,hello';a.download='test.txt';a.click();return 'download triggered';})()" } },
+        { "tool": "screenshot" },
+        { "tool": "get_page_state" }
+      ]
+    }
+  ]
+}

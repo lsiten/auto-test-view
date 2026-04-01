@@ -1,0 +1,126 @@
+{
+  "suite": "login-auth",
+  "description": "登录认证全流程测试",
+  "cases": [
+    {
+      "id": "AUTH-001",
+      "name": "找到登录入口",
+      "description": "在首页找到登录按钮",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有登录链接" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-002",
+      "name": "登录按钮位置",
+      "description": "检查登录按钮的位置",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "描述页面右上角登录区域的内容" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-003",
+      "name": "导航栏用户区域",
+      "description": "分析导航栏的用户相关区域",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告导航栏右侧有哪些链接" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-004",
+      "name": "搜索页面登录检测",
+      "description": "分析搜索结果页登录入口",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com/s?wd=test" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有登录按钮" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-005",
+      "name": "搜索框邮箱输入",
+      "description": "在搜索框输入邮箱格式文字",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框中输入'test@example.com'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-006",
+      "name": "页面链接分析",
+      "description": "分析页面的链接",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面底部有哪些链接" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-007",
+      "name": "第三方登录检查",
+      "description": "检查页面上的图标按钮",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上有哪些图标或logo" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-008",
+      "name": "注册入口",
+      "description": "找到注册入口",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有注册链接" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-009",
+      "name": "页面安全标识",
+      "description": "检查页面安全相关标识",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "assert": { "url_starts_with": "https://" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-010",
+      "name": "空表单提交",
+      "description": "测试空表单提交",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "不输入任何内容，直接点击百度一下按钮" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-011",
+      "name": "搜索完整流程",
+      "description": "填写并提交搜索",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框输入'camscanner login'并搜索" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AUTH-012",
+      "name": "页面标题检查",
+      "description": "检查页面标题",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "执行 JavaScript: document.title，报告返回值" } },
+        { "tool": "screenshot" }
+      ]
+    }
+  ]
+}

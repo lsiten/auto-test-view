@@ -1,0 +1,56 @@
+{
+  "suite": "modal-popup",
+  "description": "弹窗、对话框、Toast 和覆盖层操作测试",
+  "cases": [
+    {
+      "id": "MOD-001",
+      "name": "关闭 Cookie 同意弹窗",
+      "description": "处理 Cookie 同意提示",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "检查页面上是否有 Cookie 同意弹窗或隐私提示，如果有就关闭它，如果没有就报告'没有弹窗'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "MOD-002",
+      "name": "关闭营销弹窗",
+      "description": "处理营销推广弹窗",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "检查页面上是否有弹窗或遮罩层，如果有就关闭，如果没有就报告'没有弹窗'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "MOD-003",
+      "name": "检查模态对话框",
+      "description": "检查页面上是否有模态对话框",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有模态对话框(modal)正在显示，描述其内容" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "MOD-004",
+      "name": "操作 Toast 通知",
+      "description": "触发并观察 Toast 消息",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "检查页面上是否有 Toast 通知或 Snackbar 提示消息，如果有就报告内容" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "MOD-005",
+      "name": "关闭弹窗后交互",
+      "description": "关闭弹窗后继续操作",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "如果有弹窗就关闭，然后点击导航栏中的'下载'链接" } },
+        { "tool": "screenshot" }
+      ]
+    }
+  ]
+}

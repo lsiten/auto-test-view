@@ -1,0 +1,108 @@
+{
+  "suite": "input-forms",
+  "description": "表单输入和提交操作测试",
+  "cases": [
+    {
+      "id": "INP-001",
+      "name": "搜索框输入",
+      "description": "在搜索框中输入文本",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框中输入 'CamScanner 扫描全能王'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "INP-002",
+      "name": "搜索框输入并提交",
+      "description": "输入文本后提交搜索表单",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在百度搜索框中输入 'CamScanner' 然后点击'百度一下'搜索按钮提交搜索" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "INP-003",
+      "name": "通过索引输入文本",
+      "description": "使用 execute_task 通过自然语言找到输入框并输入",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "使用 input_text 工具在百度搜索框中输入 'test input'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "INP-004",
+      "name": "清除并重新输入",
+      "description": "清除已有输入内容后重新输入",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框中输入 'first input'" } },
+        { "tool": "execute_task", "args": { "task": "清除搜索框中的内容，然后重新输入 'second input'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "INP-005",
+      "name": "登录表单填写",
+      "description": "在百度搜索框中验证表单输入和提交",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框中输入 'CamScanner 扫描全能王' 并提交搜索" } },
+        { "tool": "screenshot", "note": "截图验证搜索结果" }
+      ]
+    },
+    {
+      "id": "INP-006",
+      "name": "多字段表单填写",
+      "description": "在百度搜索框中连续输入多次验证覆盖",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框中输入 'hello world'" } },
+        { "tool": "execute_task", "args": { "task": "清除搜索框内容，然后输入 'auto test'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "INP-007",
+      "name": "输入特殊字符",
+      "description": "在输入框中输入特殊字符",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框中输入包含特殊字符的文本: '<script>alert(1)</script> & \"quotes\" 中文测试'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "INP-008",
+      "name": "长文本输入",
+      "description": "在输入框中输入较长的文本",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框中输入一段较长的文本（50个字以上）：'这是一段用于测试长文本输入的内容，用来验证输入框能否正确处理较长的文本字符串，包括中文字符和标点符号。'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "INP-009",
+      "name": "下拉选择框",
+      "description": "从下拉选择框中选择选项",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "如果页面上有 select 下拉选择框，点击它并选择第二个选项" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "INP-010",
+      "name": "复选框和单选框",
+      "description": "操作 checkbox 和 radio button",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "如果页面上有复选框(checkbox)，勾选第一个复选框；如果有单选按钮(radio)，选择第二个选项" } },
+        { "tool": "screenshot" }
+      ]
+    }
+  ]
+}

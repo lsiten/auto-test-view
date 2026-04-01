@@ -1,0 +1,107 @@
+{
+  "suite": "click-interactions",
+  "description": "点击类交互操作测试",
+  "cases": [
+    {
+      "id": "CLK-001",
+      "name": "点击按钮",
+      "description": "点击页面上的 button 元素",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "找到页面上的第一个按钮并点击它" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CLK-002",
+      "name": "点击超链接",
+      "description": "点击页面上的 a 标签链接",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "点击顶部导航栏中的'下载'链接" } },
+        { "tool": "screenshot", "note": "验证点击后页面变化" }
+      ]
+    },
+    {
+      "id": "CLK-003",
+      "name": "通过索引点击元素",
+      "description": "使用 click_element 工具通过元素索引直接点击",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "click_element", "args": { "index": 5 }, "note": "点击导航栏中的一个可交互元素" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CLK-004",
+      "name": "点击导航菜单",
+      "description": "点击顶部导航栏菜单项",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "点击顶部导航栏中的'产品'或'功能'菜单项" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CLK-005",
+      "name": "点击 CTA 按钮",
+      "description": "点击 CTA(Call-to-Action) 按钮",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "click_element", "args": { "index": 10 }, "note": "点击页面上的一个导航链接" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CLK-006",
+      "name": "点击图片链接",
+      "description": "点击包含在链接中的图片",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 3 } },
+        { "tool": "click_element", "args": { "index": 100 }, "note": "点击页面下方的一个可交互元素" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CLK-007",
+      "name": "点击下拉菜单触发器",
+      "description": "点击触发下拉菜单的元素",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "找到有下拉菜单的导航项（通常有箭头图标），点击它使下拉菜单出现" } },
+        { "tool": "screenshot", "note": "截图验证下拉菜单是否展开" }
+      ]
+    },
+    {
+      "id": "CLK-008",
+      "name": "点击选项卡/Tab",
+      "description": "在 Tab 切换组件中切换不同选项卡",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "如果页面上有选项卡(Tab)组件，依次点击每个选项卡" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CLK-009",
+      "name": "点击折叠/展开元素",
+      "description": "点击 accordion 或 collapse 组件",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "如果页面上有折叠/手风琴(accordion)组件或FAQ区域，点击展开第一项" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "CLK-010",
+      "name": "点击语言/地区切换",
+      "description": "切换网站语言或地区",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "点击页面右上角的'简体中文'语言选择按钮，然后在下拉菜单中选择'English'" } },
+        { "tool": "screenshot", "note": "验证页面语言是否已切换" }
+      ]
+    }
+  ]
+}

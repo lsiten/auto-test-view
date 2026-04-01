@@ -1,0 +1,89 @@
+{
+  "suite": "page-state-screenshot",
+  "description": "页面状态获取和截图测试",
+  "cases": [
+    {
+      "id": "PSS-001",
+      "name": "获取页面基础状态",
+      "description": "获取页面 URL、标题和 DOM 结构",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "assert": { "has_url": true, "has_title": true, "has_content": true } }
+      ]
+    },
+    {
+      "id": "PSS-002",
+      "name": "获取元素索引列表",
+      "description": "获取页面所有可交互元素的索引",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "note": "检查返回的简化 HTML 是否包含带索引的交互元素" }
+      ]
+    },
+    {
+      "id": "PSS-003",
+      "name": "默认路径截图",
+      "description": "不指定路径的截图（使用默认临时目录）",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "note": "等待页面完全渲染" },
+        { "tool": "screenshot", "assert": { "returns_path": true, "file_exists": true } }
+      ]
+    },
+    {
+      "id": "PSS-004",
+      "name": "指定路径截图",
+      "description": "截图到指定文件路径",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "note": "等待页面完全渲染" },
+        { "tool": "screenshot", "args": { "path": "/tmp/auto-test-camscanner.png" }, "assert": { "path_equals": "/tmp/auto-test-camscanner.png" } }
+      ]
+    },
+    {
+      "id": "PSS-005",
+      "name": "导航后状态变化",
+      "description": "验证导航到新页面后 DOM 状态更新",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "note": "记录状态 A" },
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "get_page_state", "note": "记录状态 B，应与 A 完全不同" }
+      ]
+    },
+    {
+      "id": "PSS-006",
+      "name": "滚动后截图",
+      "description": "验证滚动后截图反映当前视口",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/auto-test-top.png" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 3 } },
+        { "tool": "screenshot", "args": { "path": "/tmp/auto-test-scrolled.png" }, "note": "两张截图内容应不同" }
+      ]
+    },
+    {
+      "id": "PSS-007",
+      "name": "交互后状态变化",
+      "description": "点击操作后验证 DOM 状态变化",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "note": "操作前状态" },
+        { "tool": "execute_task", "args": { "task": "点击页面上第一个能展开内容的按钮（下拉菜单、手风琴等）" } },
+        { "tool": "get_page_state", "note": "操作后状态应有变化" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "PSS-008",
+      "name": "连续多次截图",
+      "description": "快速连续多次截图验证稳定性",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/auto-test-seq-1.png" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/auto-test-seq-2.png" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/auto-test-seq-3.png" } }
+      ]
+    }
+  ]
+}
