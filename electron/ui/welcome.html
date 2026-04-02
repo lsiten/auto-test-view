@@ -235,6 +235,14 @@
       </div>
     </div>
 
+    <!-- 录制管理 -->
+    <div class="section">
+      <h2>录制管理</h2>
+      <div class="url-bar">
+        <button class="go-btn" id="recorder-btn">打开录制管理</button>
+      </div>
+    </div>
+
     <!-- 快速开始 -->
     <div class="section">
       <h2>快速开始</h2>
@@ -388,6 +396,9 @@ Headers: { Mcp-Session-Id: &lt;会话ID&gt; }
   </div>
 
   <script>
+    document.getElementById('recorder-btn').addEventListener('click', function() {
+      window.location.href = 'recorder-ui.html';
+    });
     document.getElementById('go-btn').addEventListener('click', function() {
       var url = document.getElementById('url-input').value.trim();
       if (url) {

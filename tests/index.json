@@ -91,7 +91,13 @@
       "suite": "download-test",
       "cases": 3,
       "description": "下载弹窗拦截：文件下载、下载页面、data URL 下载"
+    },
+    {
+      "file": "suites/recorder.json",
+      "suite": "recorder",
+      "cases": 17,
+      "description": "录制功能：生命周期、无效操作过滤、导航控制、CRUD、导出"
     }
   ],
-  "total_cases": 120
+  "total_cases": 137
 }

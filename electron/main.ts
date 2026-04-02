@@ -3,20 +3,25 @@
  * Sets up the BrowserWindow, CSP bypass, page-agent injection, IPC, and MCP server.
  */
 
-import { app, BrowserWindow, session, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, session, dialog } from "electron";
 import * as os from "os";
 import * as path from "path";
 import * as dotenv from "dotenv";
-import { logger } from "./logger";
-import { injectPageAgent } from "./agent-injector";
-import { setupIpcHandlers, setMainWindow } from "./ipc-handlers";
-import { startMcpServer } from "./mcp-server";
-import { startLlmProxy } from "./llm-proxy";
+import { logger } from "./core/logger";
+import { injectPageAgent } from "./core/agent-injector";
+import { setupIpcHandlers, setMainWindow, setLlmConfig, navigateTo } from "./core/ipc-handlers";
+import { startMcpServer } from "./mcp/server";
+import { startLlmProxy } from "./core/llm-proxy";
+import { initRecorderStore } from "./recorder/store";
+import { isRecording, startRecording, onEvent as recorderOnEvent } from "./recorder/recorder";
+import { injectRecorder } from "./recorder/inject";
+import { startPageIndexService, stopPageIndexService } from "./recorder/semantic-index";
 
 dotenv.config();
 
 
-const WELCOME_PAGE = path.join(__dirname, "..", "..", "electron", "welcome.html");
+const WELCOME_PAGE = path.join(__dirname, "..", "..", "electron", "ui", "welcome.html");
+const RECORDER_UI_PAGE = path.join(__dirname, "..", "..", "electron", "ui", "recorder-ui.html");
 const WINDOW_WIDTH = 1280;
 const WINDOW_HEIGHT = 900;
 
@@ -137,11 +142,34 @@ const createWindow = async (): Promise<BrowserWindow> => {
 
   // Inject page-agent on every dom-ready (including after navigation)
   win.webContents.on("dom-ready", () => {
-    logger.info(`dom-ready: ${win.webContents.getURL()}`);
+    const currentUrl = win.webContents.getURL();
+    logger.info(`dom-ready: ${currentUrl}`);
     injectPageAgent(win, llmConfig).catch((err) => {
       logger.error("page-agent injection failed on dom-ready", err);
     });
+
+    // Inject recorder script if currently recording
+    if (isRecording()) {
+      injectRecorder(win).catch((err) => {
+        logger.error("Recorder injection failed on dom-ready", err);
+      });
+    }
   });
+
+  // Track navigations for recording
+  const trackNavigation = (_event: unknown, url: string): void => {
+    if (isRecording()) {
+      recorderOnEvent({
+        tool: "navigate",
+        args: { url },
+        url,
+        text: `Navigated to ${url}`,
+      });
+    }
+  };
+
+  win.webContents.on("did-navigate", trackNavigation);
+  win.webContents.on("did-navigate-in-page", trackNavigation);
 
   win.on("closed", () => {
     logger.info("Main window closed");
@@ -166,9 +194,74 @@ const bootstrap = async (): Promise<void> => {
   setupCspBypass();
   setupDownloadHandler();
   setupIpcHandlers();
+  setLlmConfig(llmConfig);
 
-  await createWindow();
+  // Initialize recorder store with project directory for dual-scope support
+  const projectDir = process.env.AUTO_TEST_PROJECT_DIR || process.cwd();
+  initRecorderStore(projectDir);
+
+  // Start PageIndex Python service for recording semantic indexing
+  startPageIndexService(llmConfig);
+
+  const win = await createWindow();
   logger.info("Electron window created and page loaded");
+
+  // IPC: browser navigation controls (back / forward / refresh)
+  ipcMain.on("nav-back", () => {
+    if (win && !win.isDestroyed() && win.webContents.canGoBack()) {
+      win.webContents.goBack();
+    }
+  });
+  ipcMain.on("nav-forward", () => {
+    if (win && !win.isDestroyed() && win.webContents.canGoForward()) {
+      win.webContents.goForward();
+    }
+  });
+  ipcMain.on("nav-refresh", () => {
+    if (win && !win.isDestroyed()) {
+      win.webContents.reload();
+    }
+  });
+
+  // IPC: open recorder management UI
+  ipcMain.on("open-recorder-ui", () => {
+    if (win && !win.isDestroyed()) {
+      const recorderUrl = `file://${RECORDER_UI_PAGE}`;
+      logger.info(`Loading recorder UI: ${recorderUrl}`);
+      win.loadURL(recorderUrl).catch((err) => {
+        logger.warn("Recorder UI load error (page may still render)", err);
+      });
+    }
+  });
+
+  // IPC: navigate to welcome (home) page
+  ipcMain.on("open-welcome", () => {
+    if (win && !win.isDestroyed()) {
+      const welcomeUrl = `file://${WELCOME_PAGE}`;
+      logger.info(`Loading welcome page: ${welcomeUrl}`);
+      win.loadURL(welcomeUrl).catch((err) => {
+        logger.warn("Welcome page load error", err);
+      });
+    }
+  });
+
+  // IPC: start new recording from management page (name, group, url)
+  ipcMain.handle("start-new-recording", async (_event, name: string, group: string, url: string, _scope?: string) => {
+    try {
+      const id = startRecording(name, group);
+      // Navigate to the target URL
+      const result = await navigateTo(url);
+      // Inject recorder after navigation
+      if (win && !win.isDestroyed()) {
+        await injectRecorder(win);
+      }
+      return { id, ...result };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error("start-new-recording error", message);
+      return { error: message };
+    }
+  });
 
   await startMcpServer();
   logger.info("Application bootstrap complete");
@@ -182,6 +275,7 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  stopPageIndexService();
   app.quit();
 });
 

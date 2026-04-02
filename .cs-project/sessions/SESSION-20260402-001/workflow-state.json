@@ -1,0 +1,18 @@
+{
+  "currentPhase": "waiting_user_review",
+  "pendingAction": "等待用户 Review 确认",
+  "taskId": "TASK-005",
+  "mode": "full",
+  "stepCount": 5,
+  "agents": {
+    "implementer": "开发-小A",
+    "specReviewer": "Spec审查-小B",
+    "qualityReviewer": "质量审查-小C"
+  },
+  "split": {
+    "subtasks": ["TASK-005-01", "TASK-005-02", "TASK-005-03", "TASK-005-04"],
+    "executionPlan": "01 → (02 + 03) → 04",
+    "currentSubtaskId": "TASK-005-04",
+    "completedSubtasks": ["TASK-005-01", "TASK-005-02", "TASK-005-03", "TASK-005-04"]
+  }
+}

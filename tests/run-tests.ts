@@ -257,6 +257,99 @@ const validateAssertions = (
         }
         break;
       }
+      case "has_id":
+        if (expected === true && !parsed.id) {
+          return `Expected response to contain id`;
+        }
+        break;
+      case "has_field": {
+        const fieldName = expected as string;
+        if (!(fieldName in parsed)) {
+          return `Expected response to contain field "${fieldName}"`;
+        }
+        break;
+      }
+      case "field_equals": {
+        const spec = expected as { field: string; value: unknown };
+        const actual = parsed[spec.field];
+        if (actual !== spec.value) {
+          return `Expected ${spec.field} = ${JSON.stringify(spec.value)}, got ${JSON.stringify(actual)}`;
+        }
+        break;
+      }
+      case "field_gte": {
+        const spec = expected as { field: string; value: number };
+        const actual = parsed[spec.field] as number;
+        if (typeof actual !== "number" || actual < spec.value) {
+          return `Expected ${spec.field} >= ${spec.value}, got ${actual}`;
+        }
+        break;
+      }
+      case "field_lte": {
+        const spec = expected as { field: string; value: number };
+        const actual = parsed[spec.field] as number;
+        if (typeof actual !== "number" || actual > spec.value) {
+          return `Expected ${spec.field} <= ${spec.value}, got ${actual}`;
+        }
+        break;
+      }
+      case "is_array":
+        if (expected === true && !Array.isArray(parsed)) {
+          // Check if the top-level parse is an array
+          try {
+            const arr = JSON.parse(text);
+            if (!Array.isArray(arr)) {
+              return `Expected response to be an array`;
+            }
+          } catch {
+            return `Expected response to be an array`;
+          }
+        }
+        break;
+      case "array_length_gte": {
+        let arr: unknown[];
+        try { arr = JSON.parse(text); } catch { arr = []; }
+        if (!Array.isArray(arr) || arr.length < (expected as number)) {
+          return `Expected array length >= ${expected}, got ${Array.isArray(arr) ? arr.length : "not array"}`;
+        }
+        break;
+      }
+      case "is_error":
+        if (expected === true) {
+          const isErr = text.includes("failed:") || parsed.error;
+          if (!isErr) {
+            return `Expected an error response`;
+          }
+        }
+        break;
+      case "has_deleted":
+        if (expected === true && !parsed.deleted) {
+          return `Expected response to contain deleted: true`;
+        }
+        break;
+      case "has_suite":
+        if (expected === true && !parsed.suite) {
+          return `Expected response to contain suite field`;
+        }
+        break;
+      case "has_cases":
+        if (expected === true && !parsed.cases) {
+          return `Expected response to contain cases field`;
+        }
+        break;
+      case "text_contains": {
+        if (!text.includes(expected as string)) {
+          return `Expected response to contain "${expected}"`;
+        }
+        break;
+      }
+      case "step_groups_gte": {
+        const sg = parsed.stepGroups as unknown[];
+        if (!Array.isArray(sg) || sg.length < (expected as number)) {
+          return `Expected stepGroups length >= ${expected}, got ${Array.isArray(sg) ? sg.length : "missing"}`;
+        }
+        break;
+      }
       default:
         // Unknown assertion type, skip
         break;
@@ -293,7 +386,10 @@ const runStep = async (
     }
 
     // Check for error in result
-    if (isError(result)) {
+    // If the step asserts is_error, we EXPECT an error — skip the error check
+    const expectsError = step.assert && (step.assert as Record<string, unknown>).is_error === true;
+
+    if (isError(result) && !expectsError) {
       // For some tools/steps, errors are acceptable:
       // - stop_task/get_status: may have no running task
       // - execute_task without assertions: LLM output is non-deterministic
@@ -301,8 +397,10 @@ const runStep = async (
       const isAcceptable =
         step.tool === "stop_task" ||
         step.tool === "get_status" ||
+        step.tool === "stop_recording" ||
         (step.tool === "screenshot" && !step.assert) ||
         (step.tool === "execute_task" && !step.assert) ||
+        (step.tool === "execute_js" && !step.assert) ||
         (step.tool === "click_element" && !step.assert) ||
         (step.tool === "input_text" && !step.assert) ||
         (step.note && step.note.includes("验证"));

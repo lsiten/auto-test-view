@@ -1,0 +1,15 @@
+{
+  "sessionId": "SESSION-20260401-001",
+  "currentPhase": "waiting_user_review",
+  "pendingAction": "等待用户 Review",
+  "mode": "full",
+  "stepCount": 1,
+  "tasks": ["TASK-002"],
+  "branch": "task/TASK-002",
+  "agents": {
+    "implementer": "开发-小A",
+    "specReviewer": "Spec审查-小B",
+    "qualityReviewer": "质量审查-小C"
+  },
+  "createdAt": "2026-04-01T10:00:00+08:00"
+}

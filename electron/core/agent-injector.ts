@@ -14,6 +14,7 @@ const PAGE_AGENT_BUNDLE_PATH = path.resolve(
   __dirname,
   "..",
   "..",
+  "..",
   "node_modules",
   "page-agent",
   "dist",

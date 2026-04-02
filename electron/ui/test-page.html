@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Recorder Test Page</title>
+  <style>
+    body { font-family: sans-serif; padding: 40px; background: #f5f5f5; }
+    h1 { margin-bottom: 20px; }
+    .interactive { margin: 10px 0; }
+    .non-interactive { margin: 10px 0; color: #666; }
+    button { padding: 8px 16px; cursor: pointer; }
+    a { color: #1a73e8; }
+    input { padding: 8px; margin: 4px 0; }
+    .plain-div { padding: 20px; background: #eee; margin: 10px 0; }
+    .icon-btn { cursor: pointer; padding: 8px; background: #ddd; border: none; border-radius: 4px; }
+    .tall-content { height: 2000px; background: linear-gradient(#fff, #ccc); padding: 20px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1 id="page-title">Recorder Test Page</h1>
+
+  <div class="interactive">
+    <button id="btn-action">Action Button</button>
+    <button id="btn-submit" type="submit">Submit</button>
+    <a id="link-example" href="#section2">Go to Section 2</a>
+  </div>
+
+  <div class="interactive">
+    <input id="input-name" type="text" placeholder="Enter name" />
+    <input id="input-empty" type="text" placeholder="Leave empty" />
+  </div>
+
+  <div class="interactive">
+    <button id="icon-btn" class="icon-btn" aria-label="Settings" title="Settings">S</button>
+    <span role="button" id="role-btn" tabindex="0" style="cursor:pointer;padding:4px 8px;background:#ddd;border-radius:4px;">Role Button</span>
+  </div>
+
+  <p class="non-interactive" id="plain-text">This is plain non-interactive text paragraph.</p>
+  <div class="plain-div" id="plain-div">This is a plain div with no interactivity.</div>
+
+  <div id="section2" style="margin-top: 40px;">
+    <h2>Section 2</h2>
+    <p>Target anchor section.</p>
+  </div>
+
+  <div class="tall-content" id="tall-content">
+    <p>Tall content for scroll testing. Scroll down to see more.</p>
+  </div>
+</body>
+</html>
