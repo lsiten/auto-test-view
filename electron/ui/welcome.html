@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Test View</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background: #0f1117;
+      color: #e1e4e8;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 48px 32px; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 48px; }
+    .header h1 {
+      font-size: 36px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #58a6ff, #bc8cff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .header .subtitle {
+      font-size: 16px;
+      color: #8b949e;
+    }
+    .header .version {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 4px 12px;
+      background: #1c2028;
+      border: 1px solid #30363d;
+      border-radius: 16px;
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    .status-item {
+      flex: 1;
+      min-width: 200px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .status-item .label {
+      font-size: 12px;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .status-item .value {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .status-item .value.ok { color: #3fb950; }
+    .status-item .value.url { color: #58a6ff; font-size: 14px; font-family: monospace; }
+
+    /* Sections */
+    .section { margin-bottom: 36px; }
+    .section h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #e1e4e8;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #21262d;
+    }
+
+    /* Quick Start Steps */
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step {
+      display: flex;
+      gap: 16px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      transition: border-color 0.2s;
+    }
+    .step:hover { border-color: #58a6ff; }
+    .step-number {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      background: #1f6feb;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .step-content h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e1e4e8;
+      margin-bottom: 4px;
+    }
+    .step-content p { font-size: 13px; color: #8b949e; }
+
+    /* Tools Grid */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .tool-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      transition: border-color 0.2s;
+    }
+    .tool-card:hover { border-color: #58a6ff; }
+    .tool-name {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: #bc8cff;
+      margin-bottom: 4px;
+    }
+    .tool-desc { font-size: 13px; color: #8b949e; }
+    .tool-params {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #58a6ff;
+      font-family: monospace;
+    }
+
+    /* Code Block */
+    .code-block {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #e1e4e8;
+    }
+    .code-block .comment { color: #8b949e; }
+    .code-block .string { color: #a5d6ff; }
+    .code-block .key { color: #ff7b72; }
+    .code-block .value { color: #79c0ff; }
+
+    /* URL Input */
+    .url-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .url-input {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: #e1e4e8;
+      font-size: 14px;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .url-input:focus { border-color: #58a6ff; }
+    .url-input::placeholder { color: #484f58; }
+    .go-btn {
+      padding: 10px 24px;
+      background: #1f6feb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .go-btn:hover { background: #388bfd; }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #21262d;
+      color: #484f58;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Auto Test View</h1>
+      <p class="subtitle">基于 Electron + Page-Agent 的浏览器自动化工具，通过 MCP 协议控制</p>
+      <span class="version">v1.0.0</span>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="label">MCP 服务</div>
+        <div class="value ok" id="mcp-status">运行中</div>
+      </div>
+      <div class="status-item">
+        <div class="label">服务地址</div>
+        <div class="value url">http://127.0.0.1:3399/mcp</div>
+      </div>
+      <div class="status-item">
+        <div class="label">Page-Agent</div>
+        <div class="value ok" id="agent-status">就绪</div>
+      </div>
+    </div>
+
+    <!-- 导航 -->
+    <div class="section">
+      <h2>导航到目标页面</h2>
+      <div class="url-bar">
+        <input type="text" class="url-input" id="url-input" placeholder="https://example.com" />
+        <button class="go-btn" id="go-btn">前往</button>
+      </div>
+    </div>
+
+    <!-- 录制管理 -->
+    <div class="section">
+      <h2>录制管理</h2>
+      <div class="url-bar">
+        <button class="go-btn" id="recorder-btn">打开录制管理</button>
+      </div>
+    </div>
+
+    <!-- 快速开始 -->
+    <div class="section">
+      <h2>快速开始</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>启动应用</h3>
+            <p>运行 npm run dev &mdash; 编译 TypeScript 并启动 Electron 窗口，同时在 3399 端口启动 MCP 服务。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>连接 MCP 服务</h3>
+            <p>向 <code>http://127.0.0.1:3399/mcp</code> 发送 JSON-RPC <code>initialize</code> 请求以创建会话。后续所有工具调用需携带返回的会话 ID。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>调用工具</h3>
+            <p>使用 <code>navigate</code> 打开页面，<code>execute_task</code> 执行 AI 驱动的操作，<code>screenshot</code> 截取结果。组合使用可完成端到端测试流程。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h3>运行测试套件</h3>
+            <p>执行 <code>npx ts-node tests/run-tests.ts</code> 可自动运行所有 JSON 定义的测试套件。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MCP 工具 -->
+    <div class="section">
+      <h2>可用 MCP 工具</h2>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-name">navigate</div>
+          <div class="tool-desc">导航浏览器到指定 URL，等待页面加载完成并重新注入 page-agent。</div>
+          <div class="tool-params">{ url: string }</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">execute_task</div>
+          <div class="tool-desc">通过 page-agent AI 执行自然语言任务，LLM 会解析指令并执行 DOM 操作。</div>
+          <div class="tool-params">{ task: string }</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_page_state</div>
+          <div class="tool-desc">获取当前页面 DOM 状态，包括简化的 HTML 结构和可交互元素索引。</div>
+          <div class="tool-params">{}</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">screenshot</div>
+          <div class="tool-desc">截取当前视口的 PNG 截图并保存到磁盘。</div>
+          <div class="tool-params">{ path?: string }</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">click_element</div>
+          <div class="tool-desc">通过 page-agent 元素树中的索引点击页面元素。</div>
+          <div class="tool-params">{ index: number }</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">input_text</div>
+          <div class="tool-desc">向指定索引的输入框中输入文本内容。</div>
+          <div class="tool-params">{ index: number, text: string }</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">scroll</div>
+          <div class="tool-desc">按指定方向（上/下/左/右）滚动页面，可设置滚动的视口页数。</div>
+          <div class="tool-params">{ direction: string, pages?: number }</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_status</div>
+          <div class="tool-desc">查询 page-agent 当前的执行状态。</div>
+          <div class="tool-params">{}</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">stop_task</div>
+          <div class="tool-desc">中止当前正在运行的 page-agent 任务。</div>
+          <div class="tool-params">{}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 示例 -->
+    <div class="section">
+      <h2>示例：MCP 工具调用</h2>
+      <div class="code-block"><span class="comment">// 1. 初始化会话</span>
+POST http://127.0.0.1:3399/mcp
+{
+  <span class="key">"jsonrpc"</span>: <span class="string">"2.0"</span>,
+  <span class="key">"id"</span>: <span class="value">1</span>,
+  <span class="key">"method"</span>: <span class="string">"initialize"</span>,
+  <span class="key">"params"</span>: {
+    <span class="key">"protocolVersion"</span>: <span class="string">"2025-03-26"</span>,
+    <span class="key">"capabilities"</span>: {},
+    <span class="key">"clientInfo"</span>: { <span class="key">"name"</span>: <span class="string">"my-client"</span>, <span class="key">"version"</span>: <span class="string">"1.0.0"</span> }
+  }
+}
+
+<span class="comment">// 2. 导航到目标页面</span>
+POST http://127.0.0.1:3399/mcp
+Headers: { Mcp-Session-Id: &lt;会话ID&gt; }
+{
+  <span class="key">"jsonrpc"</span>: <span class="string">"2.0"</span>,
+  <span class="key">"id"</span>: <span class="value">2</span>,
+  <span class="key">"method"</span>: <span class="string">"tools/call"</span>,
+  <span class="key">"params"</span>: {
+    <span class="key">"name"</span>: <span class="string">"navigate"</span>,
+    <span class="key">"arguments"</span>: { <span class="key">"url"</span>: <span class="string">"https://example.com"</span> }
+  }
+}
+
+<span class="comment">// 3. 执行 AI 驱动的任务</span>
+{
+  <span class="key">"method"</span>: <span class="string">"tools/call"</span>,
+  <span class="key">"params"</span>: {
+    <span class="key">"name"</span>: <span class="string">"execute_task"</span>,
+    <span class="key">"arguments"</span>: { <span class="key">"task"</span>: <span class="string">"点击登录按钮"</span> }
+  }
+}</div>
+    </div>
+
+    <!-- 测试套件示例 -->
+    <div class="section">
+      <h2>测试套件格式</h2>
+      <div class="code-block"><span class="comment">// tests/suites/my-test.json</span>
+{
+  <span class="key">"suite"</span>: <span class="string">"my-test"</span>,
+  <span class="key">"description"</span>: <span class="string">"我的测试套件"</span>,
+  <span class="key">"cases"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="string">"TC-001"</span>,
+      <span class="key">"name"</span>: <span class="string">"首页检查"</span>,
+      <span class="key">"steps"</span>: [
+        { <span class="key">"tool"</span>: <span class="string">"navigate"</span>, <span class="key">"args"</span>: { <span class="key">"url"</span>: <span class="string">"https://example.com"</span> } },
+        { <span class="key">"tool"</span>: <span class="string">"execute_task"</span>, <span class="key">"args"</span>: { <span class="key">"task"</span>: <span class="string">"报告页面标题"</span> } },
+        { <span class="key">"tool"</span>: <span class="string">"screenshot"</span> }
+      ]
+    }
+  ]
+}</div>
+    </div>
+
+    <div class="footer">
+      Auto Test View &mdash; Electron + Page-Agent + MCP
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('recorder-btn').addEventListener('click', function() {
+      window.location.href = 'recorder-ui.html';
+    });
+    document.getElementById('go-btn').addEventListener('click', function() {
+      var url = document.getElementById('url-input').value.trim();
+      if (url) {
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+        window.location.href = url;
+      }
+    });
+    document.getElementById('url-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('go-btn').click();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+  "suite": "agent-control",
+  "description": "Agent 控制操作测试（启动/停止/状态）",
+  "cases": [
+    {
+      "id": "AGT-001",
+      "name": "获取空闲状态",
+      "description": "无任务执行时获取 agent 状态",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_status", "assert": { "not_busy": true } }
+      ]
+    },
+    {
+      "id": "AGT-002",
+      "name": "停止正在执行的任务",
+      "description": "启动一个任务后立即停止",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "从页面顶部一直滚动到页面底部，检查每个区域的内容" } },
+        { "tool": "stop_task" },
+        { "tool": "get_status", "note": "验证任务已停止" }
+      ]
+    },
+    {
+      "id": "AGT-003",
+      "name": "停止后重新执行",
+      "description": "停止任务后执行新任务",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "分析整个页面结构" } },
+        { "tool": "stop_task" },
+        { "tool": "execute_task", "args": { "task": "点击页面上的第一个按钮" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "AGT-004",
+      "name": "连续执行多个任务",
+      "description": "依次执行多个独立任务",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告页面标题文字" } },
+        { "tool": "execute_task", "args": { "task": "滚动到页面中间" } },
+        { "tool": "execute_task", "args": { "task": "报告当前可见区域的主要内容" } },
+        { "tool": "get_status" }
+      ]
+    },
+    {
+      "id": "AGT-005",
+      "name": "导航后 agent 重新初始化",
+      "description": "验证导航到新页面后 agent 重新工作",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告页面标题" } },
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "报告页面标题" } },
+        { "tool": "get_status", "assert": { "agent_available": true } }
+      ]
+    }
+  ]
+}

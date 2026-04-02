@@ -1,0 +1,96 @@
+{
+  "suite": "e2e-workflows",
+  "description": "端到端完整流程测试",
+  "cases": [
+    {
+      "id": "E2E-001",
+      "name": "首页探索完整流程",
+      "description": "模拟用户首次访问网站的完整探索流程",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "如果有弹窗或 Cookie 提示，关闭它" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-001-step1-homepage.png" } },
+        { "tool": "execute_task", "args": { "task": "阅读页面主标题和副标题，报告网站的主要功能描述" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 2 } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-001-step2-features.png" } },
+        { "tool": "execute_task", "args": { "task": "找到功能介绍区域，报告列出的主要功能点" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 2 } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-001-step3-bottom.png" } },
+        { "tool": "execute_task", "args": { "task": "报告页面 footer 中的版权信息和主要链接分类" } }
+      ]
+    },
+    {
+      "id": "E2E-002",
+      "name": "搜索引擎 → 搜索结果验证",
+      "description": "模拟从搜索引擎搜索并验证搜索结果",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框输入'扫描全能王'并点击百度一下按钮" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-002-step1-search.png" } },
+        { "tool": "execute_task", "args": { "task": "报告搜索结果中前3条结果的标题" } },
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "assert": { "url_contains": "camscanner" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-002-step2-landing.png" } }
+      ]
+    },
+    {
+      "id": "E2E-003",
+      "name": "多页面导航 + 信息收集",
+      "description": "浏览网站多个页面并收集信息",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告顶部导航栏的菜单项名称" } },
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/user/downloads" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-003-step1-page2.png" } },
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-003-step2-page3.png" } }
+      ]
+    },
+    {
+      "id": "E2E-004",
+      "name": "响应式检查流程",
+      "description": "验证页面在滚动不同位置的响应表现",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-004-viewport-top.png" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 1 } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-004-viewport-mid1.png" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 1 } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-004-viewport-mid2.png" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 1 } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-004-viewport-mid3.png" } },
+        { "tool": "execute_task", "args": { "task": "报告当前页面是否有固定定位(fixed)的导航栏或浮动元素" } }
+      ]
+    },
+    {
+      "id": "E2E-005",
+      "name": "下载页面探索",
+      "description": "导航到下载页面并验证下载选项",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "点击导航栏中的'下载'链接" } },
+        { "tool": "screenshot" },
+        { "tool": "execute_task", "args": { "task": "报告当前页面提供了哪些平台的下载选项" } },
+        { "tool": "get_page_state" }
+      ]
+    },
+    {
+      "id": "E2E-006",
+      "name": "完整交互序列测试",
+      "description": "综合测试：导航 → 滚动 → 点击 → 输入 → 截图 → 状态检查",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "note": "初始状态" },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-006-step1.png" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 2 } },
+        { "tool": "click_element", "args": { "index": 50 }, "note": "点击页面中间区域的一个元素" },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-006-step2.png" } },
+        { "tool": "get_page_state", "note": "操作后状态" },
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框输入'test'并搜索" } },
+        { "tool": "screenshot", "args": { "path": "/tmp/e2e-006-step3.png" } },
+        { "tool": "get_status", "note": "最终 agent 状态" }
+      ]
+    }
+  ]
+}

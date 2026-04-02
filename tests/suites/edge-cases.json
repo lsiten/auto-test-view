@@ -1,0 +1,106 @@
+{
+  "suite": "edge-cases",
+  "description": "边界场景和异常处理测试",
+  "cases": [
+    {
+      "id": "EDG-001",
+      "name": "空页面处理",
+      "description": "导航到空白页面",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "about:blank" } },
+        { "tool": "get_page_state", "note": "验证空页面的状态返回" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "EDG-002",
+      "name": "404 页面处理",
+      "description": "导航到不存在的页面",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/this-page-does-not-exist-xyz" } },
+        { "tool": "get_page_state" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "EDG-003",
+      "name": "重复快速导航",
+      "description": "快速连续导航到不同页面",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_page_state", "assert": { "url_contains": "camscanner.com" } }
+      ]
+    },
+    {
+      "id": "EDG-004",
+      "name": "大型 DOM 页面",
+      "description": "在 DOM 元素较多的页面上操作",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com/s?wd=test" } },
+        { "tool": "get_page_state", "note": "搜索结果页通常有大量 DOM 元素" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "EDG-005",
+      "name": "HTTPS 重定向页面",
+      "description": "访问 HTTPS 地址",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com" } },
+        { "tool": "get_page_state", "assert": { "url_starts_with": "https://" } }
+      ]
+    },
+    {
+      "id": "EDG-006",
+      "name": "带 iframe 的页面",
+      "description": "检查 iframe 元素",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有 iframe 元素，如果有就报告数量" } }
+      ]
+    },
+    {
+      "id": "EDG-007",
+      "name": "页面加载后状态",
+      "description": "验证页面加载后 agent 状态正常",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "get_status", "note": "验证 agent 在页面加载后处于正常状态" }
+      ]
+    },
+    {
+      "id": "EDG-008",
+      "name": "动态内容页面",
+      "description": "验证对动态加载内容的处理",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有动画元素或动态加载的内容" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "EDG-009",
+      "name": "SPA 页面内导航",
+      "description": "测试前端路由变化后 agent 仍可操作",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "点击导航栏中的一个链接" } },
+        { "tool": "get_page_state", "note": "验证导航后 agent 仍可操作" },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "EDG-010",
+      "name": "固定定位元素",
+      "description": "测试 fixed/sticky 元素",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 2 } },
+        { "tool": "execute_task", "args": { "task": "报告当前页面是否有固定定位(fixed)的导航栏" } },
+        { "tool": "screenshot" }
+      ]
+    }
+  ]
+}

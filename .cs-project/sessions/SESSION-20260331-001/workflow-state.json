@@ -1,9 +1,10 @@
 {
   "sessionId": "SESSION-20260331-001",
-  "currentPhase": "investigating",
-  "pendingAction": "调查 page-agent 和技术方案",
-  "mode": null,
-  "stepCount": 0,
-  "tasks": [],
+  "currentPhase": "waiting_user_review",
+  "pendingAction": "等待用户 Review",
+  "mode": "full",
+  "stepCount": 1,
+  "tasks": ["TASK-001"],
+  "branch": "task/TASK-001",
   "createdAt": "2026-03-31T10:00:00+08:00"
 }

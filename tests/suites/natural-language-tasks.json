@@ -1,0 +1,103 @@
+{
+  "suite": "natural-language-tasks",
+  "description": "自然语言驱动的复杂任务测试（execute_task 核心能力）",
+  "cases": [
+    {
+      "id": "NLT-001",
+      "name": "描述性点击",
+      "description": "用自然语言描述要点击的元素",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "点击导航栏中的'下载'菜单项" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "NLT-002",
+      "name": "条件性操作",
+      "description": "根据页面内容判断后执行操作",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "如果页面上有弹窗或 cookie 同意提示，关闭它；如果没有，报告页面上没有弹窗" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "NLT-003",
+      "name": "信息提取",
+      "description": "从页面提取特定信息",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "找到页面上的主标题（h1 标签）和副标题，报告它们的文字内容" } }
+      ]
+    },
+    {
+      "id": "NLT-004",
+      "name": "多步骤操作序列",
+      "description": "在一个任务中执行多个连续步骤",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框中输入'CamScanner'并点击百度一下按钮" } },
+        { "tool": "screenshot" },
+        { "tool": "execute_task", "args": { "task": "报告搜索结果页面前3条结果的标题" } }
+      ]
+    },
+    {
+      "id": "NLT-005",
+      "name": "页面结构分析",
+      "description": "让 agent 分析页面结构并报告",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "分析当前页面的结构，报告：1) 导航栏有几个主菜单项，分别是什么；2) 页面有几个主要区块(section)；3) 页面底部 footer 包含哪些链接分类" } }
+      ]
+    },
+    {
+      "id": "NLT-006",
+      "name": "元素计数",
+      "description": "统计页面上特定类型元素的数量",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "统计页面上可见的按钮(button)数量、链接(a)数量和图片(img)数量" } }
+      ]
+    },
+    {
+      "id": "NLT-007",
+      "name": "样式/视觉信息检查",
+      "description": "检查元素的视觉属性",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "找到页面主 CTA 按钮，通过执行 JavaScript 获取它的背景色、字体大小和 padding 值" } }
+      ]
+    },
+    {
+      "id": "NLT-008",
+      "name": "动态等待操作",
+      "description": "等待特定条件满足后操作",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "等待页面完全加载（所有图片加载完成），然后截取当前视口截图" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "NLT-009",
+      "name": "执行自定义 JavaScript",
+      "description": "通过自然语言任务执行页面上的 JavaScript",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "执行 JavaScript: document.title，报告返回值" } }
+      ]
+    },
+    {
+      "id": "NLT-010",
+      "name": "复杂流程：搜索 + 导航 + 验证",
+      "description": "模拟真实用户的搜索 → 点击 → 验证流程",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框中输入'扫描全能王'并点击搜索按钮" } },
+        { "tool": "screenshot", "note": "搜索结果截图" },
+        { "tool": "execute_task", "args": { "task": "报告当前页面搜索结果中的前3条结果标题" } }
+      ]
+    }
+  ]
+}

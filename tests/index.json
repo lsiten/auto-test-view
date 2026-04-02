@@ -1,0 +1,103 @@
+{
+  "name": "auto-test-view test suites",
+  "description": "Electron + page-agent 自动化测试用例集",
+  "suites": [
+    {
+      "file": "suites/navigation.json",
+      "suite": "navigation",
+      "cases": 6,
+      "description": "页面导航：URL 跳转、跨域、子页面、锚点、刷新重注入"
+    },
+    {
+      "file": "suites/click-interactions.json",
+      "suite": "click-interactions",
+      "cases": 10,
+      "description": "点击交互：按钮、链接、索引点击、菜单、下拉、Tab、折叠、语言切换"
+    },
+    {
+      "file": "suites/input-forms.json",
+      "suite": "input-forms",
+      "cases": 10,
+      "description": "表单输入：搜索、登录、多字段、特殊字符、长文本、下拉选择、复选单选"
+    },
+    {
+      "file": "suites/scroll-viewport.json",
+      "suite": "scroll-viewport",
+      "cases": 10,
+      "description": "滚动视口：上下左右滚动、多页、懒加载、滚动后操作、返回顶部"
+    },
+    {
+      "file": "suites/page-state-screenshot.json",
+      "suite": "page-state-screenshot",
+      "cases": 8,
+      "description": "状态截图：DOM 状态获取、截图、导航后变化、连续截图"
+    },
+    {
+      "file": "suites/natural-language-tasks.json",
+      "suite": "natural-language-tasks",
+      "cases": 10,
+      "description": "自然语言任务：描述性点击、条件操作、信息提取、多步序列、JS 执行"
+    },
+    {
+      "file": "suites/modal-popup.json",
+      "suite": "modal-popup",
+      "cases": 5,
+      "description": "弹窗处理：Cookie 同意、营销弹窗、对话框、Toast、遮罩层"
+    },
+    {
+      "file": "suites/agent-control.json",
+      "suite": "agent-control",
+      "cases": 5,
+      "description": "Agent 控制：状态查询、停止任务、重启、连续执行、导航重初始化"
+    },
+    {
+      "file": "suites/e2e-workflows.json",
+      "suite": "e2e-workflows",
+      "cases": 6,
+      "description": "端到端流程：首页探索、搜索引擎流程、多页导航、综合序列"
+    },
+    {
+      "file": "suites/login-auth.json",
+      "suite": "login-auth",
+      "cases": 12,
+      "description": "登录认证：登录入口、表单填写、空提交、登录方式、找回密码、第三方登录"
+    },
+    {
+      "file": "suites/register.json",
+      "suite": "register",
+      "cases": 6,
+      "description": "注册流程：表单结构、邮箱填写、密码填写、用户协议、空提交"
+    },
+    {
+      "file": "suites/captcha-verification.json",
+      "suite": "captcha-verification",
+      "cases": 12,
+      "description": "验证码：图片验证码、滑块、点选、reCAPTCHA、短信验证码、邮箱验证码"
+    },
+    {
+      "file": "suites/user-session.json",
+      "suite": "user-session",
+      "cases": 7,
+      "description": "用户会话：登录态检测、用户菜单、退出登录、Cookie/Storage"
+    },
+    {
+      "file": "suites/edge-cases.json",
+      "suite": "edge-cases",
+      "cases": 10,
+      "description": "边界场景：空页面、404、重复导航、大型 DOM、iframe、SPA 导航"
+    },
+    {
+      "file": "suites/download-test.json",
+      "suite": "download-test",
+      "cases": 3,
+      "description": "下载弹窗拦截：文件下载、下载页面、data URL 下载"
+    },
+    {
+      "file": "suites/recorder.json",
+      "suite": "recorder",
+      "cases": 17,
+      "description": "录制功能：生命周期、无效操作过滤、导航控制、CRUD、导出"
+    }
+  ],
+  "total_cases": 137
+}

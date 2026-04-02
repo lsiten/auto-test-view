@@ -1,0 +1,455 @@
+{
+  "suite": "recorder",
+  "description": "录制功能：生命周期、无效操作过滤、导航控制、CRUD、导出",
+  "cases": [
+    {
+      "id": "REC-000",
+      "name": "清理：停止残留录制",
+      "description": "确保没有残留的活跃录制，为后续测试提供干净状态",
+      "steps": [
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "note": "尝试停止，可能报错（无活跃录制），两种结果都可以"
+        }
+      ]
+    },
+    {
+      "id": "REC-001",
+      "name": "录制生命周期：启动-导航-停止",
+      "description": "启动录制，导航到测试页面，停止后验证录制数据完整",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "lifecycle-test", "group": "auto-test" },
+          "assert": { "has_field": "id" },
+          "note": "启动录制"
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" },
+          "assert": { "has_url": true }
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": {
+            "has_id": true,
+            "has_field": "name",
+            "has_field": "stepGroups",
+            "field_gte": { "field": "totalSteps", "value": 1 }
+          },
+          "note": "停止录制，验证至少有 1 步（navigate 被记录）"
+        }
+      ]
+    },
+    {
+      "id": "REC-002",
+      "name": "步骤分组",
+      "description": "录制中添加步骤分组，验证停止后包含多个分组",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "group-test", "group": "auto-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "add_step_group",
+          "args": { "label": "登录流程" },
+          "assert": { "has_field": "success" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://www.iana.org/" }
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": {
+            "step_groups_gte": 2
+          },
+          "note": "验证至少 2 个分组（default + 登录流程）"
+        }
+      ]
+    },
+    {
+      "id": "REC-003",
+      "name": "无效操作过滤：非交互元素点击",
+      "description": "通过 execute_js 模拟点击非交互元素，验证不被录入",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "filter-non-interactive", "group": "filter-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "document.querySelector('p').click(); 'clicked-p'" },
+          "note": "点击纯文本 <p> 元素（非交互）"
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "document.body.click(); 'clicked-body'" },
+          "note": "点击 body 背景（非交互）"
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "new Promise(r => setTimeout(r, 600)); 'waited'" },
+          "note": "等待防抖完成"
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": {
+            "field_lte": { "field": "totalSteps", "value": 3 }
+          },
+          "note": "非交互点击不应被录入，步骤数仅含 navigate（navigate 事件可能被 did-navigate 记录）"
+        }
+      ]
+    },
+    {
+      "id": "REC-004",
+      "name": "有效操作录入：交互元素点击",
+      "description": "通过 execute_js 模拟点击按钮和链接，验证被录入",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "filter-interactive", "group": "filter-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "var a = document.querySelector('a'); if(a){a.click();} 'clicked-a'" },
+          "note": "点击链接（交互元素），应被录入"
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "new Promise(r => setTimeout(r, 600)); 'waited'" }
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": {
+            "field_gte": { "field": "totalSteps", "value": 2 }
+          },
+          "note": "至少 2 步：navigate + click_element"
+        }
+      ]
+    },
+    {
+      "id": "REC-005",
+      "name": "无效操作过滤：空输入",
+      "description": "聚焦输入框但不输入内容，验证不被录入",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "filter-empty-input", "group": "filter-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "var inp = document.createElement('input'); document.body.appendChild(inp); inp.focus(); inp.value=''; inp.dispatchEvent(new Event('input',{bubbles:true})); 'dispatched-empty'" },
+          "note": "触发空值 input 事件"
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "new Promise(r => setTimeout(r, 800)); 'waited'" }
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": {
+            "field_lte": { "field": "totalSteps", "value": 3 }
+          },
+          "note": "空输入不应产生 input_text 步骤"
+        }
+      ]
+    },
+    {
+      "id": "REC-006",
+      "name": "无效操作过滤：重复点击去重",
+      "description": "400ms 内快速双击同一元素，验证只录入一次",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "filter-dedup-click", "group": "filter-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "var a = document.querySelector('a'); if(a){a.click(); a.click(); a.click();} 'triple-clicked'" },
+          "note": "同步快速三连击同一链接"
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "new Promise(r => setTimeout(r, 600)); 'waited'" }
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": {
+            "field_lte": { "field": "totalSteps", "value": 4 }
+          },
+          "note": "三连击去重后应只记录 1 次 click + navigate 步骤"
+        }
+      ]
+    },
+    {
+      "id": "REC-007",
+      "name": "无效操作过滤：微滚动",
+      "description": "滚动小于 100px 不应被录入",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "filter-small-scroll", "group": "filter-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "window.scrollBy(0, 30); new Promise(r => setTimeout(r, 1500)); 'scrolled-30px'" },
+          "note": "微滚动 30px，低于 100px 阈值"
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": {
+            "field_lte": { "field": "totalSteps", "value": 3 }
+          },
+          "note": "微滚动不应产生 scroll 步骤"
+        }
+      ]
+    },
+    {
+      "id": "REC-008",
+      "name": "导航控制：后退前进",
+      "description": "导航 A→B，go_back 回 A，go_forward 到 B",
+      "steps": [
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" },
+          "assert": { "url_contains": "example.com" },
+          "note": "页面 A"
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://www.iana.org/" },
+          "assert": { "url_contains": "iana.org" },
+          "note": "页面 B"
+        },
+        {
+          "tool": "go_back",
+          "args": {},
+          "assert": { "url_contains": "example.com" },
+          "note": "后退到页面 A"
+        },
+        {
+          "tool": "go_forward",
+          "args": {},
+          "assert": { "url_contains": "iana.org" },
+          "note": "前进到页面 B"
+        }
+      ]
+    },
+    {
+      "id": "REC-009",
+      "name": "导航控制：刷新",
+      "description": "刷新当前页面后 URL 不变",
+      "steps": [
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" },
+          "assert": { "url_contains": "example.com" }
+        },
+        {
+          "tool": "refresh",
+          "args": {},
+          "assert": { "url_contains": "example.com" },
+          "note": "刷新后 URL 保持不变"
+        }
+      ]
+    },
+    {
+      "id": "REC-010",
+      "name": "录制 CRUD：查询列表",
+      "description": "查询录制列表，验证之前的录制存在",
+      "steps": [
+        {
+          "tool": "list_recordings",
+          "args": {},
+          "assert": { "has_content": true },
+          "note": "列表应返回之前创建的录制"
+        }
+      ]
+    },
+    {
+      "id": "REC-011",
+      "name": "录制 CRUD：更新与搜索",
+      "description": "创建录制，更新名称，通过搜索找到",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "crud-update-test", "group": "crud-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": { "has_id": true }
+        },
+        {
+          "tool": "search_recordings",
+          "args": { "query": "crud-update-test" },
+          "assert": { "has_content": true },
+          "note": "搜索应找到刚创建的录制"
+        }
+      ]
+    },
+    {
+      "id": "REC-012",
+      "name": "录制 CRUD：导出测试套件",
+      "description": "导出录制为测试套件 JSON 格式",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "export-test", "group": "crud-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": { "has_id": true }
+        },
+        {
+          "tool": "search_recordings",
+          "args": { "query": "export-test" },
+          "assert": { "has_content": true },
+          "note": "找到录制后下一步通过搜索结果拿 id 导出（此处仅验证搜索可达）"
+        }
+      ]
+    },
+    {
+      "id": "REC-013",
+      "name": "错误处理：重复启动录制",
+      "description": "录制进行中再次启动应报错",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "dup-start-test", "group": "error-test" }
+        },
+        {
+          "tool": "start_recording",
+          "args": { "name": "dup-start-test-2", "group": "error-test" },
+          "assert": { "is_error": true },
+          "note": "重复启动应返回错误"
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "note": "清理：停止第一次录制"
+        }
+      ]
+    },
+    {
+      "id": "REC-014",
+      "name": "错误处理：未录制时停止",
+      "description": "没有活跃录制时调用 stop 应报错",
+      "steps": [
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": { "is_error": true },
+          "note": "无活跃录制，停止应返回错误"
+        }
+      ]
+    },
+    {
+      "id": "REC-015",
+      "name": "无效操作过滤：录制栏点击不录入",
+      "description": "通过 execute_js 模拟点击录制栏元素，验证不被录入",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "filter-bar-click", "group": "filter-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "new Promise(r => setTimeout(r, 500)).then(() => { var bar = document.getElementById('__auto-test-recorder-bar'); if(bar){ bar.click(); var spans = bar.querySelectorAll('span'); spans.forEach(s => s.click()); } return 'clicked-bar-spans'; })" },
+          "note": "点击录制栏本身和其中的 span 元素（避免点击 stop 按钮），不应被录入为步骤"
+        },
+        {
+          "tool": "execute_js",
+          "args": { "code": "new Promise(r => setTimeout(r, 600)); 'waited'" }
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": {
+            "field_lte": { "field": "totalSteps", "value": 3 }
+          },
+          "note": "录制栏内点击不应产生额外步骤"
+        }
+      ]
+    },
+    {
+      "id": "REC-016",
+      "name": "导航控制录制中后退：步骤记录",
+      "description": "录制过程中使用 go_back，验证导航步骤被记录",
+      "steps": [
+        {
+          "tool": "start_recording",
+          "args": { "name": "nav-back-recording", "group": "nav-test" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://example.com" }
+        },
+        {
+          "tool": "navigate",
+          "args": { "url": "https://www.iana.org/" }
+        },
+        {
+          "tool": "go_back",
+          "args": {},
+          "assert": { "url_contains": "example.com" },
+          "note": "后退到 example.com"
+        },
+        {
+          "tool": "stop_recording",
+          "args": {},
+          "assert": {
+            "field_gte": { "field": "totalSteps", "value": 2 }
+          },
+          "note": "应记录多个导航步骤"
+        }
+      ]
+    }
+  ]
+}

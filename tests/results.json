@@ -1,0 +1,534 @@
+{
+  "timestamp": "2026-04-01T08:10:31.723Z",
+  "duration": 18259,
+  "summary": {
+    "total": 17,
+    "passed": 17,
+    "failed": 0
+  },
+  "suites": [
+    {
+      "suite": "recorder",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "id": "REC-000",
+          "name": "清理：停止残留录制",
+          "status": "pass",
+          "duration": 3,
+          "stepResults": [
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "Stop recording failed: Not recording. Cannot stop.",
+              "url": ""
+            }
+          ]
+        },
+        {
+          "id": "REC-001",
+          "name": "录制生命周期：启动-导航-停止",
+          "status": "pass",
+          "duration": 1196,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-014\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": ""
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-014\",\n  \"name\": \"lifecycle-test\",\n  \"group\": \"auto-test\",\n  \"startUrl\": \"htt",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-002",
+          "name": "步骤分组",
+          "status": "pass",
+          "duration": 3002,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-015\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "add_step_group",
+              "status": "pass",
+              "response": "{\n  \"success\": true,\n  \"label\": \"登录流程\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://www.iana.org/\",\n  \"title\": \"Internet Assigned Numbers Authority\"\n}",
+              "url": "https://www.iana.org/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-015\",\n  \"name\": \"group-test\",\n  \"group\": \"auto-test\",\n  \"startUrl\": \"https:/",
+              "url": "https://www.iana.org/"
+            }
+          ]
+        },
+        {
+          "id": "REC-003",
+          "name": "无效操作过滤：非交互元素点击",
+          "status": "pass",
+          "duration": 1002,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-016\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://www.iana.org/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"clicked-p\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"clicked-body\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"waited\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-016\",\n  \"name\": \"filter-non-interactive\",\n  \"group\": \"filter-test\",\n  \"start",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-004",
+          "name": "有效操作录入：交互元素点击",
+          "status": "pass",
+          "duration": 1064,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-017\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"clicked-a\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"waited\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-017\",\n  \"name\": \"filter-interactive\",\n  \"group\": \"filter-test\",\n  \"startUrl\"",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-005",
+          "name": "无效操作过滤：空输入",
+          "status": "pass",
+          "duration": 935,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-018\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"dispatched-empty\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"waited\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-018\",\n  \"name\": \"filter-empty-input\",\n  \"group\": \"filter-test\",\n  \"startUrl\"",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-006",
+          "name": "无效操作过滤：重复点击去重",
+          "status": "pass",
+          "duration": 1067,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-019\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"triple-clicked\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"waited\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-019\",\n  \"name\": \"filter-dedup-click\",\n  \"group\": \"filter-test\",\n  \"startUrl\"",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-007",
+          "name": "无效操作过滤：微滚动",
+          "status": "pass",
+          "duration": 932,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-020\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"scrolled-30px\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-020\",\n  \"name\": \"filter-small-scroll\",\n  \"group\": \"filter-test\",\n  \"startUrl",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-008",
+          "name": "导航控制：后退前进",
+          "status": "pass",
+          "duration": 2140,
+          "stepResults": [
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://www.iana.org/\",\n  \"title\": \"Internet Assigned Numbers Authority\"\n}",
+              "url": "https://www.iana.org/"
+            },
+            {
+              "tool": "go_back",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "go_forward",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://www.iana.org/\",\n  \"title\": \"Internet Assigned Numbers Authority\"\n}",
+              "url": "https://www.iana.org/"
+            }
+          ]
+        },
+        {
+          "id": "REC-009",
+          "name": "导航控制：刷新",
+          "status": "pass",
+          "duration": 936,
+          "stepResults": [
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "refresh",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-010",
+          "name": "录制 CRUD：查询列表",
+          "status": "pass",
+          "duration": 3,
+          "stepResults": [
+            {
+              "tool": "list_recordings",
+              "status": "pass",
+              "response": "[\n  {\n    \"id\": \"rec-20260401-001\",\n    \"name\": \"test\",\n    \"group\": \"test\",\n    \"startUrl\": \"https:",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-011",
+          "name": "录制 CRUD：更新与搜索",
+          "status": "pass",
+          "duration": 909,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-021\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-021\",\n  \"name\": \"crud-update-test\",\n  \"group\": \"crud-test\",\n  \"startUrl\": \"h",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "search_recordings",
+              "status": "pass",
+              "response": "[\n  {\n    \"id\": \"rec-20260401-009\",\n    \"name\": \"crud-update-test\",\n    \"group\": \"crud-test\",\n    \"s",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-012",
+          "name": "录制 CRUD：导出测试套件",
+          "status": "pass",
+          "duration": 999,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-022\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-022\",\n  \"name\": \"export-test\",\n  \"group\": \"crud-test\",\n  \"startUrl\": \"https:",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "search_recordings",
+              "status": "pass",
+              "response": "[\n  {\n    \"id\": \"rec-20260401-010\",\n    \"name\": \"export-test\",\n    \"group\": \"crud-test\",\n    \"startU",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-013",
+          "name": "错误处理：重复启动录制",
+          "status": "pass",
+          "duration": 6,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-023\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "Start recording failed: Already recording. Stop current recording first.",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-023\",\n  \"name\": \"dup-start-test\",\n  \"group\": \"error-test\",\n  \"startUrl\": \"\",",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-014",
+          "name": "错误处理：未录制时停止",
+          "status": "pass",
+          "duration": 2,
+          "stepResults": [
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "Stop recording failed: Not recording. Cannot stop.",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-015",
+          "name": "无效操作过滤：录制栏点击不录入",
+          "status": "pass",
+          "duration": 1991,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-024\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"clicked-bar-spans\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "execute_js",
+              "status": "pass",
+              "response": "{\n  \"result\": \"waited\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-024\",\n  \"name\": \"filter-bar-click\",\n  \"group\": \"filter-test\",\n  \"startUrl\": ",
+              "url": "https://example.com/"
+            }
+          ]
+        },
+        {
+          "id": "REC-016",
+          "name": "导航控制录制中后退：步骤记录",
+          "status": "pass",
+          "duration": 2070,
+          "stepResults": [
+            {
+              "tool": "start_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-025\",\n  \"state\": {\n    \"state\": \"recording\",\n    \"recordingId\": \"rec-2026040",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "navigate",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://www.iana.org/\",\n  \"title\": \"Internet Assigned Numbers Authority\"\n}",
+              "url": "https://www.iana.org/"
+            },
+            {
+              "tool": "go_back",
+              "status": "pass",
+              "response": "{\n  \"url\": \"https://example.com/\",\n  \"title\": \"Example Domain\"\n}",
+              "url": "https://example.com/"
+            },
+            {
+              "tool": "stop_recording",
+              "status": "pass",
+              "response": "{\n  \"id\": \"rec-20260401-025\",\n  \"name\": \"nav-back-recording\",\n  \"group\": \"nav-test\",\n  \"startUrl\": \"",
+              "url": "https://example.com/"
+            }
+          ]
+        }
+      ],
+      "duration": 18258
+    }
+  ]
+}

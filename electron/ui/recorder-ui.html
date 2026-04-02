@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>录制管理 - Auto Test View</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background: #0f1117;
+      color: #e1e4e8;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 32px; }
+
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e94560, #bc8cff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      flex: 1;
+    }
+    .header-btn {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary { background: #1f6feb; color: #fff; }
+    .btn-primary:hover { background: #388bfd; }
+    .btn-secondary { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+    .btn-secondary:hover { background: #30363d; color: #e1e4e8; }
+    .btn-danger { background: #da3633; color: #fff; }
+    .btn-danger:hover { background: #f85149; }
+    .btn-small { padding: 4px 10px; font-size: 12px; }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 24px;
+      width: 420px;
+      max-width: 90vw;
+    }
+    .modal h2 { font-size: 18px; margin-bottom: 16px; color: #e1e4e8; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: #8b949e;
+      margin-bottom: 4px;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #e1e4e8;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #58a6ff; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+    /* Group sections */
+    .group-section { margin-bottom: 24px; }
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.2s;
+    }
+    .group-header:hover { border-color: #58a6ff; }
+    .group-arrow { transition: transform 0.2s; font-size: 12px; color: #8b949e; }
+    .group-arrow.open { transform: rotate(90deg); }
+    .group-name { font-size: 16px; font-weight: 600; flex: 1; }
+    .group-count { font-size: 12px; color: #8b949e; }
+    .group-body { display: none; padding: 8px 0 0 0; }
+    .group-body.open { display: block; }
+
+    /* Recording card */
+    .rec-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      transition: border-color 0.2s;
+    }
+    .rec-card:hover { border-color: #58a6ff; }
+    .rec-top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+    .rec-name { font-size: 15px; font-weight: 600; color: #e1e4e8; flex: 1; min-width: 150px; }
+    .rec-meta { font-size: 12px; color: #8b949e; display: flex; gap: 12px; flex-wrap: wrap; }
+    .rec-meta span { white-space: nowrap; }
+    .rec-summary { font-size: 13px; color: #58a6ff; margin: 4px 0; }
+    .rec-urls { font-size: 11px; color: #8b949e; font-family: monospace; }
+    .rec-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+    /* Detail view */
+    .detail-panel {
+      display: none;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .detail-panel.open { display: block; }
+    .step-group-title { font-size: 14px; font-weight: 600; color: #bc8cff; margin: 10px 0 6px 0; }
+    .step-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .step-table th {
+      text-align: left;
+      font-size: 11px;
+      color: #484f58;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-bottom: 1px solid #30363d;
+      text-transform: uppercase;
+    }
+    .step-table td {
+      padding: 6px 8px;
+      font-size: 12px;
+      border-bottom: 1px solid #21262d;
+      vertical-align: top;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .step-table .col-seq { width: 40px; color: #8b949e; text-align: right; }
+    .step-table .col-tool { width: 110px; color: #bc8cff; font-family: monospace; }
+    .step-table .col-text { color: #e1e4e8; }
+    .step-table .col-url { width: 180px; color: #484f58; font-family: monospace; font-size: 11px; }
+    .step-table tr:hover td { background: #161b22; }
+    .step-table tr.step-running td { background: #1f2d1f; }
+    .step-table tr.step-pass td { opacity: 0.5; }
+    .step-table tr.step-fail td { background: #2d1f1f; }
+
+    /* Trial run */
+    .btn-success { background: #238636; color: #fff; }
+    .btn-success:hover { background: #2ea043; }
+    .trial-status {
+      padding: 10px 14px;
+      margin-top: 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: none;
+    }
+    .trial-status.active { display: flex; align-items: center; gap: 10px; }
+    .trial-status.running { background: #0d2137; border: 1px solid #1f6feb; color: #58a6ff; }
+    .trial-status.done { background: #0d2d0d; border: 1px solid #238636; color: #3fb950; }
+    .trial-status.error { background: #2d0d0d; border: 1px solid #da3633; color: #f85149; }
+    .trial-progress { flex: 1; }
+    .trial-progress-bar {
+      height: 4px;
+      background: #21262d;
+      border-radius: 2px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    .trial-progress-fill {
+      height: 100%;
+      background: #1f6feb;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #484f58;
+      font-size: 16px;
+    }
+
+    /* Scope tabs */
+    .scope-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 4px;
+    }
+    .scope-tab {
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: transparent;
+      color: #8b949e;
+      transition: all 0.2s;
+    }
+    .scope-tab:hover { color: #e1e4e8; }
+    .scope-tab.active {
+      background: #1f6feb;
+      color: #fff;
+    }
+    .scope-label {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .scope-label.project { background: #1f3a5f; color: #58a6ff; }
+    .scope-label.global { background: #2d2d2d; color: #8b949e; }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .search-input {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #e1e4e8;
+      font-size: 14px;
+      outline: none;
+    }
+    .search-input:focus { border-color: #58a6ff; }
+    .search-input::placeholder { color: #484f58; }
+
+    /* Batch action bar */
+    .batch-bar {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      background: #161b22;
+      border: 1px solid #1f6feb;
+      border-radius: 8px;
+    }
+    .batch-bar.active { display: flex; }
+    .batch-bar .batch-count { font-size: 14px; color: #58a6ff; font-weight: 600; flex: 1; }
+    .batch-bar .batch-actions { display: flex; gap: 8px; }
+
+    /* Checkbox styling */
+    .rec-checkbox {
+      width: 16px;
+      height: 16px;
+      accent-color: #1f6feb;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .group-checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Batch move modal */
+    .batch-move-modal .group-option {
+      padding: 8px 12px;
+      margin: 4px 0;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #e1e4e8;
+      font-size: 14px;
+    }
+    .batch-move-modal .group-option:hover { border-color: #58a6ff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>录制管理</h1>
+      <span id="index-status" style="font-size:12px;color:#8b949e;cursor:pointer;" title="语义索引状态（点击重建）"></span>
+      <button class="header-btn btn-primary" id="new-rec-btn">开始新录制</button>
+      <button class="header-btn btn-secondary" id="back-btn">返回首页</button>
+    </div>
+
+    <div class="scope-tabs" id="scope-tabs">
+      <button class="scope-tab active" data-scope="">全部</button>
+      <button class="scope-tab" data-scope="project">项目录制</button>
+      <button class="scope-tab" data-scope="global">全局录制</button>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" class="search-input" id="search-input" placeholder="搜索录制（名称、分组、URL、摘要...）" />
+    </div>
+
+    <div class="batch-bar" id="batch-bar">
+      <input type="checkbox" class="rec-checkbox" id="select-all-checkbox" title="全选/取消全选" />
+      <span class="batch-count" id="batch-count">已选 0 条</span>
+      <div class="batch-actions">
+        <button class="header-btn btn-secondary btn-small" id="batch-move-btn">移动分组</button>
+        <button class="header-btn btn-secondary btn-small" id="batch-export-btn">批量导出</button>
+        <button class="header-btn btn-danger btn-small" id="batch-delete-btn">批量删除</button>
+        <button class="header-btn btn-secondary btn-small" id="batch-cancel-btn">取消选择</button>
+      </div>
+    </div>
+
+    <div id="recordings-list"></div>
+  </div>
+
+  <!-- New Recording Modal -->
+  <div class="modal-overlay" id="new-rec-modal">
+    <div class="modal">
+      <h2>开始新录制</h2>
+      <div class="form-group">
+        <label>录制名称</label>
+        <input type="text" id="rec-name-input" placeholder="例如：登录流程测试" />
+      </div>
+      <div class="form-group">
+        <label>分组</label>
+        <input type="text" id="rec-group-input" placeholder="例如：电商测试" />
+      </div>
+      <div class="form-group">
+        <label>起始 URL</label>
+        <input type="text" id="rec-url-input" placeholder="https://example.com" />
+      </div>
+      <div class="form-group">
+        <label>保存位置</label>
+        <select id="rec-scope-input">
+          <option value="project">项目级别</option>
+          <option value="global">全局</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="header-btn btn-secondary" id="cancel-new-rec">取消</button>
+        <button class="header-btn btn-primary" id="confirm-new-rec">开始录制</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h2>编辑录制</h2>
+      <input type="hidden" id="edit-rec-id" />
+      <div class="form-group">
+        <label>名称</label>
+        <input type="text" id="edit-name-input" />
+      </div>
+      <div class="form-group">
+        <label>分组</label>
+        <input type="text" id="edit-group-input" />
+      </div>
+      <div class="modal-actions">
+        <button class="header-btn btn-secondary" id="cancel-edit">取消</button>
+        <button class="header-btn btn-primary" id="confirm-edit">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Move Modal -->
+  <div class="modal-overlay" id="batch-move-modal">
+    <div class="modal batch-move-modal">
+      <h2>移动到分组</h2>
+      <div class="form-group">
+        <label>选择已有分组</label>
+        <div id="batch-move-groups"></div>
+      </div>
+      <div class="form-group">
+        <label>或输入新分组名称</label>
+        <input type="text" id="batch-move-input" placeholder="新分组名称" />
+      </div>
+      <div class="modal-actions">
+        <button class="header-btn btn-secondary" id="cancel-batch-move">取消</button>
+        <button class="header-btn btn-primary" id="confirm-batch-move">移动</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var bridge = window.autoTestBridge;
+    var allRecordings = [];
+    var selectedIds = new Set();
+    var currentScope = ''; // '' = all, 'project', 'global'
+
+    // -----------------------------------------------------------------------
+    // Scope tabs
+    // -----------------------------------------------------------------------
+    document.getElementById('scope-tabs').addEventListener('click', function(e) {
+      var tab = e.target.closest('.scope-tab');
+      if (!tab) return;
+      document.querySelectorAll('.scope-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      currentScope = tab.getAttribute('data-scope') || '';
+      selectedIds.clear();
+      updateBatchBar();
+      loadRecordings(document.getElementById('search-input').value);
+    });
+
+    // -----------------------------------------------------------------------
+    // Load and render
+    // -----------------------------------------------------------------------
+    async function loadRecordings(searchQuery) {
+      if (!bridge || !bridge.recorderStore) return;
+      var scope = currentScope || undefined;
+      try {
+        if (searchQuery && searchQuery.trim()) {
+          allRecordings = await bridge.recorderStore.search(searchQuery.trim(), scope);
+        } else {
+          allRecordings = await bridge.recorderStore.list(undefined, scope);
+        }
+        renderRecordings(allRecordings);
+      } catch (err) {
+        document.getElementById('recordings-list').innerHTML =
+          '<div class="empty-state">加载录制列表失败</div>';
+      }
+    }
+
+    function renderRecordings(recordings) {
+      var container = document.getElementById('recordings-list');
+      if (!recordings || recordings.length === 0) {
+        container.innerHTML = '<div class="empty-state">暂无录制记录，点击"开始新录制"创建第一条。</div>';
+        return;
+      }
+
+      // Group by group field
+      var groups = {};
+      var groupOrder = [];
+      recordings.forEach(function(r) {
+        var g = r.group || '未分组';
+        if (!groups[g]) {
+          groups[g] = [];
+          groupOrder.push(g);
+        }
+        groups[g].push(r);
+      });
+
+      var html = '';
+      groupOrder.forEach(function(g) {
+        var recs = groups[g];
+        var groupIds = recs.map(function(r) { return r.id; });
+        var allChecked = groupIds.every(function(id) { return selectedIds.has(id); });
+        html += '<div class="group-section">';
+        html += '<div class="group-header">';
+        html += '<input type="checkbox" class="rec-checkbox group-select" data-group-ids=\'' + JSON.stringify(groupIds) + '\'' + (allChecked && recs.length > 0 ? ' checked' : '') + ' onclick="toggleGroupSelect(event, this)" />';
+        html += '<span class="group-arrow" onclick="toggleGroup(this.parentElement)">&#9654;</span>';
+        html += '<span class="group-name" onclick="toggleGroup(this.parentElement)">' + escapeHtml(g) + '</span>';
+        html += '<span class="group-count" onclick="toggleGroup(this.parentElement)">' + recs.length + ' 条录制</span>';
+        html += '</div>';
+        html += '<div class="group-body">';
+
+        recs.forEach(function(r) {
+          var durationSec = Math.round((r.duration || 0) / 1000);
+          var isChecked = selectedIds.has(r.id);
+          html += '<div class="rec-card" id="card-' + r.id + '">';
+          html += '<div class="rec-top">';
+          html += '<input type="checkbox" class="rec-checkbox item-select" data-id="' + r.id + '"' + (isChecked ? ' checked' : '') + ' onclick="toggleItemSelect(event, this)" />';
+          html += '<span class="rec-name">' + escapeHtml(r.name);
+          var scopeClass = r.scope === 'project' ? 'project' : 'global';
+          var scopeText = r.scope === 'project' ? '项目' : '全局';
+          html += '<span class="scope-label ' + scopeClass + '">' + scopeText + '</span>';
+          html += '</span>';
+          html += '<div class="rec-meta">';
+          html += '<span>' + r.totalSteps + ' 步</span>';
+          html += '<span>' + durationSec + ' 秒</span>';
+          html += '<span>' + (r.createdAt ? new Date(r.createdAt).toLocaleString() : '') + '</span>';
+          html += '</div>';
+          html += '</div>';
+          if (r.summary) {
+            html += '<div class="rec-summary">' + escapeHtml(r.summary) + '</div>';
+          }
+          if (r.urls && r.urls.length > 0) {
+            html += '<div class="rec-urls">' + r.urls.map(escapeHtml).join(', ') + '</div>';
+          }
+          html += '<div class="rec-actions">';
+          html += '<button class="header-btn btn-secondary btn-small" onclick="viewDetail(\'' + r.id + '\')">详情</button>';
+          html += '<button class="header-btn btn-success btn-small" onclick="trialRun(\'' + r.id + '\')">试运行</button>';
+          html += '<button class="header-btn btn-secondary btn-small" onclick="editRecording(\'' + r.id + '\')">编辑</button>';
+          html += '<button class="header-btn btn-secondary btn-small" onclick="exportRecording(\'' + r.id + '\')">导出</button>';
+          html += '<button class="header-btn btn-danger btn-small" onclick="deleteRecording(\'' + r.id + '\')">删除</button>';
+          html += '</div>';
+          html += '<div class="detail-panel" id="detail-' + r.id + '"></div>';
+          html += '</div>';
+        });
+
+        html += '</div></div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // -----------------------------------------------------------------------
+    // Group toggle
+    // -----------------------------------------------------------------------
+    function toggleGroup(el) {
+      var header = el.closest('.group-header');
+      var arrow = header.querySelector('.group-arrow');
+      var body = header.nextElementSibling;
+      if (body.classList.contains('open')) {
+        body.classList.remove('open');
+        arrow.classList.remove('open');
+      } else {
+        body.classList.add('open');
+        arrow.classList.add('open');
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Detail view
+    // -----------------------------------------------------------------------
+    async function viewDetail(id) {
+      var panel = document.getElementById('detail-' + id);
+      if (!panel) return;
+      if (panel.classList.contains('open')) {
+        panel.classList.remove('open');
+        return;
+      }
+      try {
+        var rec = await bridge.recorderStore.get(id);
+        if (!rec) {
+          panel.innerHTML = '<div style="color:#da3633">未找到录制记录</div>';
+          panel.classList.add('open');
+          return;
+        }
+        var html = '';
+        var globalSeq = 0;
+        (rec.stepGroups || []).forEach(function(sg, sgIdx) {
+          html += '<div class="step-group-title">' + escapeHtml(sg.label) + '</div>';
+          html += '<table class="step-table"><thead><tr>';
+          html += '<th class="col-seq">#</th>';
+          html += '<th class="col-tool">工具</th>';
+          html += '<th class="col-text">描述</th>';
+          html += '<th class="col-url">页面</th>';
+          html += '<th style="width:60px">操作</th>';
+          html += '</tr></thead><tbody>';
+          (sg.steps || []).forEach(function(step, stepIdx) {
+            globalSeq++;
+            var shortUrl = step.url || '';
+            try { shortUrl = new URL(shortUrl).hostname; } catch(e) {}
+            html += '<tr id="step-' + id + '-' + sgIdx + '-' + stepIdx + '">';
+            html += '<td class="col-seq">' + globalSeq + '</td>';
+            html += '<td class="col-tool">' + escapeHtml(step.tool) + '</td>';
+            html += '<td class="col-text" title="' + escapeHtml(step.text) + '" ondblclick="editStepText(\'' + id + '\',' + sgIdx + ',' + stepIdx + ',this)" style="cursor:text">' + escapeHtml(truncateText(step.text, 60)) + '</td>';
+            html += '<td class="col-url" title="' + escapeHtml(step.url) + '">' + escapeHtml(shortUrl) + '</td>';
+            html += '<td><button class="header-btn btn-danger btn-small" style="padding:2px 6px;font-size:11px" onclick="deleteStep(\'' + id + '\',' + sgIdx + ',' + stepIdx + ')">删除</button></td>';
+            html += '</tr>';
+          });
+          html += '</tbody></table>';
+        });
+        if (!html) html = '<div style="color:#8b949e">暂无录制步骤</div>';
+        panel.innerHTML = html;
+        panel.classList.add('open');
+      } catch (err) {
+        panel.innerHTML = '<div style="color:#da3633">加载详情失败</div>';
+        panel.classList.add('open');
+      }
+    }
+
+    function truncateText(str, maxLen) {
+      if (!str) return '';
+      return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
+    }
+
+    // -----------------------------------------------------------------------
+    // Edit recording
+    // -----------------------------------------------------------------------
+    function editRecording(id) {
+      var rec = allRecordings.find(function(r) { return r.id === id; });
+      if (!rec) return;
+      document.getElementById('edit-rec-id').value = id;
+      document.getElementById('edit-name-input').value = rec.name || '';
+      document.getElementById('edit-group-input').value = rec.group || '';
+      document.getElementById('edit-modal').classList.add('active');
+    }
+
+    document.getElementById('confirm-edit').addEventListener('click', async function() {
+      var id = document.getElementById('edit-rec-id').value;
+      var name = document.getElementById('edit-name-input').value.trim();
+      var group = document.getElementById('edit-group-input').value.trim();
+      if (!id) return;
+      try {
+        await bridge.recorderStore.update(id, { name: name, group: group });
+        document.getElementById('edit-modal').classList.remove('active');
+        loadRecordings();
+      } catch (err) {
+        alert('更新录制失败');
+      }
+    });
+
+    document.getElementById('cancel-edit').addEventListener('click', function() {
+      document.getElementById('edit-modal').classList.remove('active');
+    });
+
+    // -----------------------------------------------------------------------
+    // Delete recording
+    // -----------------------------------------------------------------------
+    async function deleteRecording(id) {
+      if (!confirm('确定要删除这条录制记录吗？')) return;
+      try {
+        await bridge.recorderStore.delete(id);
+        loadRecordings();
+      } catch (err) {
+        alert('删除录制失败');
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Export recording
+    // -----------------------------------------------------------------------
+    async function exportRecording(id) {
+      try {
+        var suite = await bridge.recorderStore.export(id);
+        if (!suite) {
+          alert('未找到录制记录');
+          return;
+        }
+        var json = JSON.stringify(suite, null, 2);
+        var blob = new Blob([json], { type: 'application/json' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = id + '-suite.json';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (err) {
+        alert('导出录制失败');
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // New recording modal
+    // -----------------------------------------------------------------------
+    document.getElementById('new-rec-btn').addEventListener('click', function() {
+      document.getElementById('rec-name-input').value = '';
+      document.getElementById('rec-group-input').value = '';
+      document.getElementById('rec-url-input').value = '';
+      document.getElementById('new-rec-modal').classList.add('active');
+    });
+
+    document.getElementById('cancel-new-rec').addEventListener('click', function() {
+      document.getElementById('new-rec-modal').classList.remove('active');
+    });
+
+    document.getElementById('confirm-new-rec').addEventListener('click', async function() {
+      var name = document.getElementById('rec-name-input').value.trim();
+      var group = document.getElementById('rec-group-input').value.trim();
+      var url = document.getElementById('rec-url-input').value.trim();
+      var scope = document.getElementById('rec-scope-input').value;
+      if (!name) { alert('请输入录制名称'); return; }
+      if (!url) { alert('请输入起始 URL'); return; }
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+      document.getElementById('new-rec-modal').classList.remove('active');
+      try {
+        await bridge.startNewRecording(name, group, url, scope);
+      } catch (err) {
+        alert('启动录制失败: ' + (err.message || err));
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // Back to home
+    // -----------------------------------------------------------------------
+    document.getElementById('back-btn').addEventListener('click', function() {
+      window.location.href = 'welcome.html';
+    });
+
+    // -----------------------------------------------------------------------
+    // Search
+    // -----------------------------------------------------------------------
+    var searchTimer = null;
+    document.getElementById('search-input').addEventListener('input', function() {
+      if (searchTimer) clearTimeout(searchTimer);
+      var val = this.value;
+      searchTimer = setTimeout(function() {
+        loadRecordings(val);
+      }, 300);
+    });
+
+    // -----------------------------------------------------------------------
+    // Batch selection
+    // -----------------------------------------------------------------------
+    function updateBatchBar() {
+      var bar = document.getElementById('batch-bar');
+      var countEl = document.getElementById('batch-count');
+      var selectAllCb = document.getElementById('select-all-checkbox');
+      if (selectedIds.size > 0) {
+        bar.classList.add('active');
+        countEl.textContent = '已选 ' + selectedIds.size + ' 条';
+        selectAllCb.checked = selectedIds.size === allRecordings.length && allRecordings.length > 0;
+        selectAllCb.indeterminate = selectedIds.size > 0 && selectedIds.size < allRecordings.length;
+      } else {
+        bar.classList.remove('active');
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = false;
+      }
+    }
+
+    function toggleItemSelect(event, checkbox) {
+      event.stopPropagation();
+      var id = checkbox.getAttribute('data-id');
+      if (checkbox.checked) {
+        selectedIds.add(id);
+      } else {
+        selectedIds.delete(id);
+      }
+      updateBatchBar();
+    }
+
+    function toggleGroupSelect(event, checkbox) {
+      event.stopPropagation();
+      var ids = JSON.parse(checkbox.getAttribute('data-group-ids'));
+      ids.forEach(function(id) {
+        if (checkbox.checked) {
+          selectedIds.add(id);
+        } else {
+          selectedIds.delete(id);
+        }
+      });
+      // Update individual checkboxes
+      ids.forEach(function(id) {
+        var cb = document.querySelector('.item-select[data-id="' + id + '"]');
+        if (cb) cb.checked = checkbox.checked;
+      });
+      updateBatchBar();
+    }
+
+    document.getElementById('select-all-checkbox').addEventListener('change', function() {
+      var checked = this.checked;
+      allRecordings.forEach(function(r) {
+        if (checked) {
+          selectedIds.add(r.id);
+        } else {
+          selectedIds.delete(r.id);
+        }
+      });
+      document.querySelectorAll('.item-select, .group-select').forEach(function(cb) {
+        cb.checked = checked;
+      });
+      updateBatchBar();
+    });
+
+    document.getElementById('batch-cancel-btn').addEventListener('click', function() {
+      selectedIds.clear();
+      document.querySelectorAll('.item-select, .group-select').forEach(function(cb) {
+        cb.checked = false;
+      });
+      updateBatchBar();
+    });
+
+    // -----------------------------------------------------------------------
+    // Batch delete
+    // -----------------------------------------------------------------------
+    document.getElementById('batch-delete-btn').addEventListener('click', async function() {
+      var ids = Array.from(selectedIds);
+      if (ids.length === 0) return;
+      if (!confirm('确定要删除选中的 ' + ids.length + ' 条录制记录吗？')) return;
+      try {
+        await bridge.recorderStore.batchDelete(ids);
+        selectedIds.clear();
+        updateBatchBar();
+        loadRecordings();
+      } catch (err) {
+        alert('批量删除失败');
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // Batch export
+    // -----------------------------------------------------------------------
+    document.getElementById('batch-export-btn').addEventListener('click', async function() {
+      var ids = Array.from(selectedIds);
+      if (ids.length === 0) return;
+      try {
+        var suites = await bridge.recorderStore.batchExport(ids);
+        if (!suites || suites.length === 0) {
+          alert('没有可导出的录制');
+          return;
+        }
+        var json = JSON.stringify(suites, null, 2);
+        var blob = new Blob([json], { type: 'application/json' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'batch-export-' + ids.length + '-suites.json';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (err) {
+        alert('批量导出失败');
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // Batch move
+    // -----------------------------------------------------------------------
+    document.getElementById('batch-move-btn').addEventListener('click', function() {
+      var groupsContainer = document.getElementById('batch-move-groups');
+      // Collect unique groups from current recordings
+      var groupSet = {};
+      allRecordings.forEach(function(r) {
+        if (r.group) groupSet[r.group] = true;
+      });
+      var groups = Object.keys(groupSet).sort();
+      var html = '';
+      groups.forEach(function(g) {
+        html += '<div class="group-option" onclick="selectBatchMoveGroup(this)">' + escapeHtml(g) + '</div>';
+      });
+      if (!html) html = '<div style="color:#8b949e;font-size:13px;">暂无已有分组</div>';
+      groupsContainer.innerHTML = html;
+      document.getElementById('batch-move-input').value = '';
+      document.getElementById('batch-move-modal').classList.add('active');
+    });
+
+    function selectBatchMoveGroup(el) {
+      document.getElementById('batch-move-input').value = el.textContent;
+    }
+
+    document.getElementById('cancel-batch-move').addEventListener('click', function() {
+      document.getElementById('batch-move-modal').classList.remove('active');
+    });
+
+    document.getElementById('confirm-batch-move').addEventListener('click', async function() {
+      var group = document.getElementById('batch-move-input').value.trim();
+      if (!group) { alert('请输入或选择分组名称'); return; }
+      var ids = Array.from(selectedIds);
+      if (ids.length === 0) return;
+      try {
+        await bridge.recorderStore.batchMove(ids, group);
+        selectedIds.clear();
+        updateBatchBar();
+        document.getElementById('batch-move-modal').classList.remove('active');
+        loadRecordings();
+      } catch (err) {
+        alert('批量移动失败');
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // Delete step
+    // -----------------------------------------------------------------------
+    function editStepText(recId, groupIndex, stepIndex, td) {
+      var currentText = td.getAttribute('title') || td.textContent;
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentText;
+      input.style.cssText = 'width:100%;background:#0d1117;border:1px solid #58a6ff;border-radius:4px;padding:2px 6px;color:#e1e4e8;font-size:12px;outline:none';
+      td.textContent = '';
+      td.appendChild(input);
+      input.focus();
+      input.select();
+
+      var saved = false;
+      function save() {
+        if (saved) return;
+        saved = true;
+        var newText = input.value.trim();
+        if (!newText || newText === currentText) {
+          td.textContent = truncateText(currentText, 60);
+          td.setAttribute('title', currentText);
+          return;
+        }
+        // Update step via IPC - update both text and args.text (for input_text steps)
+        bridge.recorderStore.updateStep(recId, groupIndex, stepIndex, { text: newText }).then(function(rec) {
+          td.textContent = truncateText(newText, 60);
+          td.setAttribute('title', newText);
+        }).catch(function() {
+          td.textContent = truncateText(currentText, 60);
+          td.setAttribute('title', currentText);
+        });
+      }
+
+      input.addEventListener('blur', save);
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); save(); }
+        if (e.key === 'Escape') { saved = true; td.textContent = truncateText(currentText, 60); td.setAttribute('title', currentText); }
+      });
+    }
+
+    async function deleteStep(recId, groupIndex, stepIndex) {
+      if (!confirm('确定要删除这个步骤吗？')) return;
+      try {
+        await bridge.recorderStore.deleteStep(recId, groupIndex, stepIndex);
+        // Re-open detail to refresh
+        var panel = document.getElementById('detail-' + recId);
+        if (panel) panel.classList.remove('open');
+        viewDetail(recId);
+        loadRecordings();
+      } catch (err) {
+        alert('删除步骤失败');
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Trial run (delegates to main process)
+    // -----------------------------------------------------------------------
+    async function trialRun(recId) {
+      try {
+        var result = await bridge.trialStart(recId);
+        if (!result.started) {
+          alert('试运行启动失败: ' + (result.error || '未知错误'));
+        }
+        // The main process now controls the browser and injects its own toolbar.
+        // This page will be navigated away from.
+      } catch (err) {
+        alert('试运行失败: ' + (err.message || err));
+      }
+    }
+
+    function stopTrialRun() {
+      if (bridge.trialControl) bridge.trialControl('stop');
+    }
+
+    // -----------------------------------------------------------------------
+    // Semantic index status
+    // -----------------------------------------------------------------------
+    async function loadIndexStatus() {
+      if (!bridge || !bridge.semanticIndex) return;
+      try {
+        var status = await bridge.semanticIndex.status();
+        var el = document.getElementById('index-status');
+        if (!el) return;
+        var docs = status.totalDocs || 0;
+        var total = status.totalRecordings || 0;
+        var running = status.serviceRunning;
+        var unindexed = (status.unindexed || []).length;
+        if (total === 0) {
+          el.textContent = '';
+        } else if (!running) {
+          el.textContent = 'PageIndex: 服务未启动 (' + total + '条录制)';
+          el.style.color = '#f85149';
+        } else if (unindexed === 0) {
+          el.textContent = 'PageIndex: ' + docs + '/' + total + ' 已索引';
+          el.style.color = '#3fb950';
+        } else {
+          el.textContent = 'PageIndex: ' + docs + '/' + total + ' (' + unindexed + '条待索引)';
+          el.style.color = '#d29922';
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    document.getElementById('index-status').addEventListener('click', async function() {
+      if (!bridge || !bridge.semanticIndex) return;
+      if (!confirm('重建所有录制的语义索引？这需要调用LLM，可能需要一些时间。')) return;
+      var el = document.getElementById('index-status');
+      el.textContent = 'AI索引: 重建中...';
+      el.style.color = '#58a6ff';
+      try {
+        var result = await bridge.semanticIndex.rebuild();
+        if (result.error) {
+          alert('重建索引失败: ' + result.error);
+        } else {
+          alert('索引重建完成，共索引 ' + result.indexed + ' 条录制。');
+        }
+      } catch (e) {
+        alert('重建索引失败: ' + (e.message || e));
+      }
+      loadIndexStatus();
+    });
+
+    // -----------------------------------------------------------------------
+    // Init
+    // -----------------------------------------------------------------------
+    loadRecordings();
+    loadIndexStatus();
+  </script>
+</body>
+</html>

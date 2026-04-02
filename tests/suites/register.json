@@ -1,0 +1,67 @@
+{
+  "suite": "register",
+  "description": "注册流程测试",
+  "cases": [
+    {
+      "id": "REG-001",
+      "name": "注册入口检测",
+      "description": "检查页面上的注册入口",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告页面上是否有注册或 Sign Up 入口" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "REG-002",
+      "name": "注册相关链接",
+      "description": "查找注册相关的链接",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "execute_task", "args": { "task": "报告导航栏中是否有创建账号或注册的链接" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "REG-003",
+      "name": "用户协议链接",
+      "description": "查找用户协议",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.camscanner.com/zh" } },
+        { "tool": "scroll", "args": { "direction": "down", "pages": 5 } },
+        { "tool": "execute_task", "args": { "task": "报告页面底部是否有服务条款或用户协议链接" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "REG-004",
+      "name": "百度注册表单测试",
+      "description": "在百度测试表单输入能力",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框输入'autotest@example.com'" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "REG-005",
+      "name": "百度空表单提交",
+      "description": "不填写直接提交",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "不输入任何内容，直接点击百度一下按钮" } },
+        { "tool": "screenshot" }
+      ]
+    },
+    {
+      "id": "REG-006",
+      "name": "完整搜索注册",
+      "description": "搜索注册相关内容",
+      "steps": [
+        { "tool": "navigate", "args": { "url": "https://www.baidu.com" } },
+        { "tool": "execute_task", "args": { "task": "在搜索框输入'扫描全能王注册'并搜索" } },
+        { "tool": "screenshot" }
+      ]
+    }
+  ]
+}
