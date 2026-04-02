@@ -1,6 +1,6 @@
 {
-  "currentPhase": "waiting_user_review",
-  "pendingAction": "等待用户 Review 确认",
+  "currentPhase": "completed",
+  "pendingAction": "无",
   "taskId": "TASK-005",
   "mode": "full",
   "stepCount": 5,

@@ -4,3 +4,4 @@ dist/
 *.js.map
 *.d.ts
 !electron/**/*.d.ts
+.auto-test-view/
