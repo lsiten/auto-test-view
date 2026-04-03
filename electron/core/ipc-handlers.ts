@@ -5,6 +5,21 @@
 
 import { type BrowserWindow, ipcMain } from "electron";
 import { logger } from "./logger";
+import { getCdpClient } from "./cdp-client";
+import {
+  addRule,
+  removeRule,
+  listRules,
+  clearRules,
+  startNetworkLog,
+  stopNetworkLog,
+  getNetworkLog,
+  clearNetworkLog,
+  reapplyRules,
+  initNetworkInterceptor,
+  type InterceptRule,
+  type NetworkLogFilter,
+} from "./network-interceptor";
 import {
   startRecording,
   addStepGroup,
@@ -57,6 +72,11 @@ interface PendingRequest {
 let pendingRequest: PendingRequest | null = null;
 let mainWindow: BrowserWindow | null = null;
 let llmConfig: LlmConfig | null = null;
+let projectDir: string | null = null;
+
+export const setProjectDir = (dir: string): void => {
+  projectDir = dir;
+};
 
 /** Resolves when page-agent signals it's fully initialized in the renderer. */
 let agentReadyResolve: (() => void) | null = null;
@@ -102,6 +122,20 @@ export const getCurrentUrl = (): string | null => {
   // Skip internal pages
   if (url.startsWith("file://")) return null;
   return url;
+};
+
+// -- Pending upload file queue (used by showOpenDialog interception) --
+
+let pendingUploadFiles: ReadonlyArray<string> = [];
+
+export const setPendingUploadFiles = (files: ReadonlyArray<string>): void => {
+  pendingUploadFiles = files;
+};
+
+export const getPendingUploadFiles = (): ReadonlyArray<string> => pendingUploadFiles;
+
+export const clearPendingUploadFiles = (): void => {
+  pendingUploadFiles = [];
 };
 
 const sendCommandToRenderer = (
@@ -294,6 +328,9 @@ export const setupIpcHandlers = (): void => {
       }
     }
   );
+
+  // Initialize network interceptor CDP event listeners
+  initNetworkInterceptor();
 };
 
 /**
@@ -325,6 +362,13 @@ export const navigateTo = async (url: string): Promise<{ url: string; title: str
     logger.info("page-agent ready after navigation");
   } catch {
     logger.warn("page-agent readiness wait timed out, continuing anyway");
+  }
+
+  // Re-apply network interception rules after navigation
+  try {
+    await reapplyRules();
+  } catch {
+    logger.warn("Failed to re-apply network rules after navigation");
   }
 
   return {
@@ -403,8 +447,11 @@ export const takeScreenshot = async (savePath?: string): Promise<string> => {
   const path = await import("path");
   const os = await import("os");
 
+  const defaultDir = projectDir
+    ? path.join(projectDir, ".auto-test-view", "tmp", "screenshots")
+    : os.tmpdir();
   const outputPath = savePath ?? path.join(
-    os.tmpdir(),
+    defaultDir,
     `screenshot-${Date.now()}.png`
   );
 
@@ -485,8 +532,245 @@ export const goForward = async (): Promise<{ url: string; title: string }> => {
 };
 
 /**
- * Reload the current page.
+ * Execute a CDP command and optionally record it.
  */
+export const executeCdp = async (
+  method: string,
+  params?: Record<string, unknown>
+): Promise<unknown> => {
+  const client = getCdpClient();
+  const result = await client.sendCommand(method, params);
+
+  if (isRecording()) {
+    recorderOnEvent({
+      tool: "execute_cdp",
+      args: { method, params },
+      url: getCurrentUrl() ?? "",
+      text: `CDP: ${method}`,
+    });
+  }
+
+  return result;
+};
+
+const getMimeType = (filePath: string): string => {
+  const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
+  const mimeMap: Record<string, string> = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".pdf": "application/pdf",
+    ".txt": "text/plain",
+    ".csv": "text/csv",
+    ".json": "application/json",
+    ".xml": "text/xml",
+    ".html": "text/html",
+    ".zip": "application/zip",
+    ".doc": "application/msword",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  };
+  return mimeMap[ext] ?? "application/octet-stream";
+};
+
+const buildDragScript = (
+  filesData: ReadonlyArray<{ readonly name: string; readonly type: string; readonly base64: string }>,
+  selector: string
+): string => {
+  return `(async () => {
+    const filesData = ${JSON.stringify(filesData)};
+    const target = document.querySelector(${JSON.stringify(selector)});
+    if (!target) throw new Error('Drop target not found: ' + ${JSON.stringify(selector)});
+
+    const dt = new DataTransfer();
+    for (const fd of filesData) {
+      const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
+      const file = new File([bytes], fd.name, { type: fd.type });
+      dt.items.add(file);
+    }
+
+    const eventInit = { bubbles: true, cancelable: true, dataTransfer: dt };
+    target.dispatchEvent(new DragEvent('dragenter', eventInit));
+    target.dispatchEvent(new DragEvent('dragover', eventInit));
+    target.dispatchEvent(new DragEvent('drop', eventInit));
+
+    return { success: true, filesCount: filesData.length };
+  })()`;
+};
+
+/**
+ * Upload files to a file input element via CDP (no dialog, fully automated).
+ */
+export const uploadFile = async (
+  filePaths: ReadonlyArray<string>,
+  selector?: string
+): Promise<{ success: boolean; filesCount: number; selector: string }> => {
+  const fs = await import("fs");
+
+  for (const fp of filePaths) {
+    if (!fs.existsSync(fp)) {
+      throw new Error(`File not found: ${fp}`);
+    }
+  }
+
+  const resolvedSelector = selector ?? 'input[type="file"]';
+
+  // Set pending files as fallback for showOpenDialog interception
+  setPendingUploadFiles(filePaths);
+
+  try {
+    const client = getCdpClient();
+    const doc = await client.sendCommand("DOM.getDocument", {}) as { root: { nodeId: number } };
+    const rootNodeId = doc.root.nodeId;
+
+    const queryResult = await client.sendCommand("DOM.querySelector", {
+      nodeId: rootNodeId,
+      selector: resolvedSelector,
+    }) as { nodeId: number };
+
+    if (!queryResult.nodeId) {
+      throw new Error(`Element not found: ${resolvedSelector}`);
+    }
+
+    await client.sendCommand("DOM.setFileInputFiles", {
+      files: [...filePaths],
+      nodeId: queryResult.nodeId,
+    });
+
+    // Trigger change event so the page reacts
+    await client.sendCommand("Runtime.evaluate", {
+      expression: `document.querySelector(${JSON.stringify(resolvedSelector)}).dispatchEvent(new Event('change', { bubbles: true }))`,
+    });
+
+    if (isRecording()) {
+      recorderOnEvent({
+        tool: "upload_file",
+        args: { filePaths: [...filePaths], selector: resolvedSelector },
+        url: getCurrentUrl() ?? "",
+        text: `Upload ${filePaths.length} file(s) to ${resolvedSelector}`,
+      });
+    }
+
+    return { success: true, filesCount: filePaths.length, selector: resolvedSelector };
+  } finally {
+    clearPendingUploadFiles();
+  }
+};
+
+/**
+ * Drag and drop files onto a drop zone element (fully automated).
+ */
+export const dragFile = async (
+  filePaths: ReadonlyArray<string>,
+  selector: string
+): Promise<{ success: boolean; filesCount: number; selector: string }> => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    throw new Error("Browser window is not available");
+  }
+
+  const fs = await import("fs");
+  const pathMod = await import("path");
+
+  for (const fp of filePaths) {
+    if (!fs.existsSync(fp)) {
+      throw new Error(`File not found: ${fp}`);
+    }
+  }
+
+  const filesData = filePaths.map((fp) => ({
+    name: pathMod.basename(fp),
+    type: getMimeType(fp),
+    base64: fs.readFileSync(fp).toString("base64"),
+  }));
+
+  const script = buildDragScript(filesData, selector);
+  const result = await mainWindow.webContents.executeJavaScript(script);
+
+  if (isRecording()) {
+    recorderOnEvent({
+      tool: "drag_file",
+      args: { filePaths: [...filePaths], selector },
+      url: getCurrentUrl() ?? "",
+      text: `Drag ${filePaths.length} file(s) to ${selector}`,
+    });
+  }
+
+  return { success: true, filesCount: filePaths.length, selector, ...result };
+};
+
+/**
+ * Manage network interception rules (add, remove, list, clear).
+ */
+export const networkIntercept = async (
+  action: "add" | "remove" | "list" | "clear",
+  rule?: Omit<InterceptRule, "id"> & { id?: string },
+): Promise<unknown> => {
+  let result: unknown;
+  switch (action) {
+    case "add":
+      if (!rule) throw new Error("Rule is required for add action");
+      if (!rule.urlPattern) throw new Error("urlPattern is required for add action");
+      if (!rule.action) throw new Error("action is required for add action");
+      result = await addRule(rule);
+      break;
+    case "remove":
+      if (!rule?.id) throw new Error("Rule ID is required for remove action");
+      result = await removeRule(rule.id);
+      break;
+    case "list":
+      result = listRules();
+      break;
+    case "clear":
+      result = await clearRules();
+      break;
+  }
+  if (isRecording()) {
+    recorderOnEvent({
+      tool: "network_intercept",
+      args: { action, rule },
+      url: getCurrentUrl() ?? "",
+      text: `Network intercept: ${action}`,
+    });
+  }
+  return result;
+};
+
+/**
+ * Capture and inspect network traffic (start, stop, get, clear).
+ */
+export const networkLog = async (
+  action: "start" | "stop" | "get" | "clear",
+  filter?: NetworkLogFilter,
+): Promise<unknown> => {
+  let result: unknown;
+  switch (action) {
+    case "start":
+      await startNetworkLog();
+      result = { started: true };
+      break;
+    case "stop":
+      stopNetworkLog();
+      result = { stopped: true };
+      break;
+    case "get":
+      result = getNetworkLog(filter);
+      break;
+    case "clear":
+      clearNetworkLog();
+      result = { cleared: true };
+      break;
+  }
+  if (isRecording()) {
+    recorderOnEvent({
+      tool: "network_log",
+      args: { action, filter },
+      url: getCurrentUrl() ?? "",
+      text: `Network log: ${action}`,
+    });
+  }
+  return result;
+};
+
 export const reloadPage = async (): Promise<{ url: string; title: string }> => {
   if (!mainWindow || mainWindow.isDestroyed()) {
     throw new Error("Browser window is not available");

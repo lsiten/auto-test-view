@@ -1,0 +1,19 @@
+{
+  "sessionId": "SESSION-20260402-004",
+  "currentPhase": "verifying",
+  "mode": "full",
+  "taskId": "TASK-006",
+  "pendingAction": "最终验证",
+  "stepCount": 10,
+  "split": {
+    "subtasks": ["TASK-006-01", "TASK-006-02", "TASK-006-03"],
+    "executionPlan": "01 → (02 + 03)",
+    "currentSubtaskId": null
+  },
+  "agents": {
+    "implementer": "开发-小A",
+    "specReviewer": "Spec审查-小B",
+    "qualityReviewer": "质量审查-小C"
+  },
+  "updatedAt": "2026-04-02T21:00:00+08:00"
+}

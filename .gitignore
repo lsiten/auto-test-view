@@ -5,3 +5,4 @@ dist/
 *.d.ts
 !electron/**/*.d.ts
 .auto-test-view/
+.venv/

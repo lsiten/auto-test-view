@@ -25,6 +25,11 @@ import {
   reloadPage,
   getLlmConfig,
   getCurrentUrl,
+  executeCdp,
+  uploadFile,
+  dragFile,
+  networkIntercept,
+  networkLog,
 } from "../core/ipc-handlers";
 import {
   startRecording as recorderStart,
@@ -374,6 +379,82 @@ const registerTools = (server: McpServer): void => {
     },
     async ({ ids, scope }) =>
       wrapHandler("Batch export", async () => batchExportRecordings(ids, scope as RecordingScope | undefined))()
+  );
+
+  server.tool(
+    "execute_cdp",
+    "Execute a Chrome DevTools Protocol command directly",
+    {
+      method: z.string().describe("CDP method name (e.g. 'DOM.getDocument', 'Network.enable')"),
+      params: z.record(z.unknown()).optional().describe("CDP method parameters"),
+    },
+    async ({ method, params }) =>
+      wrapHandler("CDP command", async () => {
+        const result = await executeCdp(method, params);
+        return { method, result };
+      })()
+  );
+
+  server.tool(
+    "upload_file",
+    "Upload files to a file input element automatically (no dialog, fully automated)",
+    {
+      filePaths: z.array(z.string()).describe("Absolute paths to local files"),
+      selector: z.string().optional().describe("CSS selector for the file input (auto-detect if omitted)"),
+    },
+    async ({ filePaths, selector }) =>
+      wrapHandler("Upload file", () => uploadFile(filePaths, selector))()
+  );
+
+  server.tool(
+    "drag_file",
+    "Drag and drop files onto a drop zone element automatically (fully automated)",
+    {
+      filePaths: z.array(z.string()).describe("Absolute paths to local files"),
+      selector: z.string().describe("CSS selector for the drop zone element"),
+    },
+    async ({ filePaths, selector }) =>
+      wrapHandler("Drag file", () => dragFile(filePaths, selector))()
+  );
+
+  // -- Network interception and logging --
+
+  server.tool(
+    "network_intercept",
+    "Manage network request interception rules (mock, block, modify, delay, fail)",
+    {
+      action: z.enum(["add", "remove", "list", "clear"]).describe("Action to perform"),
+      rule: z.object({
+        id: z.string().optional().describe("Rule ID (required for remove)"),
+        urlPattern: z.string().optional().describe("URL glob pattern to match (e.g. '*/api/*')"),
+        resourceType: z.string().optional().describe("Resource type filter (Document, Script, XHR, Fetch, Image, etc.)"),
+        method: z.string().optional().describe("HTTP method filter (GET, POST, etc.)"),
+        action: z.enum(["mock", "block", "modify", "delay", "fail"]).optional().describe("Interception action"),
+        responseCode: z.number().optional().describe("Mock response status code"),
+        responseHeaders: z.record(z.string()).optional().describe("Mock response headers"),
+        responseBody: z.string().optional().describe("Mock response body"),
+        requestHeaders: z.record(z.string()).optional().describe("Headers to add/override (modify action)"),
+        delayMs: z.number().optional().describe("Delay in milliseconds (delay action)"),
+        errorReason: z.string().optional().describe("Error reason (fail action): Failed, Aborted, TimedOut, etc."),
+      }).optional().describe("Interception rule (required for add/remove)"),
+    },
+    async ({ action, rule }) =>
+      wrapHandler("Network intercept", () => networkIntercept(action, rule))()
+  );
+
+  server.tool(
+    "network_log",
+    "Capture and inspect network traffic",
+    {
+      action: z.enum(["start", "stop", "get", "clear"]).describe("Action: start/stop capturing, get logs, or clear"),
+      filter: z.object({
+        urlPattern: z.string().optional().describe("URL pattern to filter"),
+        method: z.string().optional().describe("HTTP method to filter"),
+        statusCode: z.number().optional().describe("Status code to filter"),
+      }).optional().describe("Filter criteria (only for 'get' action)"),
+    },
+    async ({ action, filter }) =>
+      wrapHandler("Network log", () => networkLog(action, filter))()
   );
 
   server.tool(

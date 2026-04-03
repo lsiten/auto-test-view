@@ -10,73 +10,304 @@ Use this skill when the user wants to:
 - Perform UI interactions (click, type, scroll) on a loaded page
 - Take screenshots for visual verification
 - Execute natural language test scenarios via page-agent AI
+- Record user interactions and replay them later
+- Intercept or mock network requests for testing
+- Upload files or drag-and-drop files for testing
+- Execute raw CDP commands for advanced browser control
 
 ## Available MCP Tools
 
-### navigate
+### Browser Navigation
+
+#### navigate
 Navigate the browser to a target URL.
 ```
 tool: navigate
 args: { "url": "https://example.com" }
 ```
 
-### execute_task
-Send a natural language task to page-agent for AI-driven execution.
+#### go_back
+Navigate back in browser history.
 ```
-tool: execute_task
-args: { "task": "Click the login button and fill in username 'test@example.com'" }
+tool: go_back
+args: {}
 ```
 
-### get_page_state
+#### go_forward
+Navigate forward in browser history.
+```
+tool: go_forward
+args: {}
+```
+
+#### refresh
+Reload the current page.
+```
+tool: refresh
+args: {}
+```
+
+### Page Inspection
+
+#### get_page_state
 Retrieve the current page DOM state as simplified HTML structure.
 ```
 tool: get_page_state
 args: {}
 ```
 
-### screenshot
+#### screenshot
 Capture a screenshot of the current page.
 ```
 tool: screenshot
 args: { "path": "/tmp/test-screenshot.png" }
 ```
 
-### click_element
-Click a specific element by its index from the page-agent element tree.
-```
-tool: click_element
-args: { "index": 5 }
-```
-
-### input_text
-Type text into a specific element by its index.
-```
-tool: input_text
-args: { "index": 3, "text": "Hello World" }
-```
-
-### scroll
-Scroll the page in a given direction.
-```
-tool: scroll
-args: { "direction": "down", "pages": 2 }
-```
-
-### get_status
+#### get_status
 Check the current page-agent execution status.
 ```
 tool: get_status
 args: {}
 ```
 
-### stop_task
+### Page Interaction
+
+#### execute_task
+Send a natural language task to page-agent for AI-driven execution.
+Automatically checks for matching recorded sequences first — if a recording matches with high confidence, it replays that instead of using page-agent from scratch.
+```
+tool: execute_task
+args: { "task": "Click the login button and fill in username 'test@example.com'" }
+```
+
+#### click_element
+Click a specific element by its index from the page-agent element tree.
+```
+tool: click_element
+args: { "index": 5 }
+```
+
+#### input_text
+Type text into a specific element by its index.
+```
+tool: input_text
+args: { "index": 3, "text": "Hello World" }
+```
+
+#### scroll
+Scroll the page in a given direction.
+```
+tool: scroll
+args: { "direction": "down", "pages": 2 }
+```
+
+#### stop_task
 Stop the currently running page-agent task.
 ```
 tool: stop_task
 args: {}
 ```
 
-## Typical Test Workflow
+### JavaScript Execution
+
+#### execute_js
+Execute JavaScript code in the page context and return the result. Useful for reading page state, modifying DOM, or running custom assertions.
+```
+tool: execute_js
+args: { "code": "document.title" }
+```
+
+### File Operations
+
+#### upload_file
+Upload files to a file input element automatically (no dialog, fully automated). Auto-detects the file input if no selector is provided.
+```
+tool: upload_file
+args: { "filePaths": ["/path/to/file.pdf"], "selector": "input[type=file]" }
+```
+
+#### drag_file
+Drag and drop files onto a drop zone element.
+```
+tool: drag_file
+args: { "filePaths": ["/path/to/image.png"], "selector": ".dropzone" }
+```
+
+### Network Interception & Logging
+
+#### network_intercept
+Manage network request interception rules. Supports mock, block, modify, delay, and fail actions.
+```
+# Add a mock rule
+tool: network_intercept
+args: {
+  "action": "add",
+  "rule": {
+    "urlPattern": "*/api/users*",
+    "action": "mock",
+    "responseCode": 200,
+    "responseBody": "{\"users\": []}"
+  }
+}
+
+# Block image requests
+tool: network_intercept
+args: {
+  "action": "add",
+  "rule": {
+    "urlPattern": "*.png",
+    "resourceType": "Image",
+    "action": "block"
+  }
+}
+
+# Simulate network delay
+tool: network_intercept
+args: {
+  "action": "add",
+  "rule": {
+    "urlPattern": "*/api/*",
+    "action": "delay",
+    "delayMs": 3000
+  }
+}
+
+# Simulate network failure
+tool: network_intercept
+args: {
+  "action": "add",
+  "rule": {
+    "urlPattern": "*/api/checkout*",
+    "action": "fail",
+    "errorReason": "TimedOut"
+  }
+}
+
+# List all active rules
+tool: network_intercept
+args: { "action": "list" }
+
+# Clear all rules
+tool: network_intercept
+args: { "action": "clear" }
+```
+
+#### network_log
+Capture and inspect network traffic.
+```
+# Start capturing
+tool: network_log
+args: { "action": "start" }
+
+# Get captured logs (with optional filter)
+tool: network_log
+args: {
+  "action": "get",
+  "filter": { "urlPattern": "*/api/*", "method": "POST" }
+}
+
+# Stop capturing
+tool: network_log
+args: { "action": "stop" }
+
+# Clear logs
+tool: network_log
+args: { "action": "clear" }
+```
+
+### Chrome DevTools Protocol
+
+#### execute_cdp
+Execute a Chrome DevTools Protocol command directly. For advanced scenarios not covered by other tools.
+```
+tool: execute_cdp
+args: { "method": "DOM.getDocument", "params": {} }
+```
+
+### Recording & Playback
+
+#### start_recording
+Start recording user interactions.
+```
+tool: start_recording
+args: { "name": "Login flow", "group": "auth" }
+```
+
+#### add_step_group
+Add a new step group to the current recording for better organization.
+```
+tool: add_step_group
+args: { "label": "Fill login form" }
+```
+
+#### stop_recording
+Stop the current recording and save it. Automatically indexes for semantic matching.
+```
+tool: stop_recording
+args: { "scope": "project" }
+```
+
+#### list_recordings
+List all recordings, optionally filtered by group and scope.
+```
+tool: list_recordings
+args: { "group": "auth", "scope": "project" }
+```
+
+#### get_recording
+Get a single recording by ID with full step details.
+```
+tool: get_recording
+args: { "id": "rec-abc123", "scope": "project" }
+```
+
+#### search_recordings
+Search recordings by name, group, URL, or summary.
+```
+tool: search_recordings
+args: { "query": "login", "scope": "project" }
+```
+
+#### update_recording
+Update a recording's name or group.
+```
+tool: update_recording
+args: { "id": "rec-abc123", "name": "New name", "group": "new-group" }
+```
+
+#### delete_recording
+Delete a recording by ID.
+```
+tool: delete_recording
+args: { "id": "rec-abc123" }
+```
+
+#### export_recording
+Export a recording as a test suite JSON compatible with tests/suites/*.json.
+```
+tool: export_recording
+args: { "id": "rec-abc123" }
+```
+
+#### Batch Operations
+
+```
+# Delete multiple recordings
+tool: batch_delete_recordings
+args: { "ids": ["rec-1", "rec-2"] }
+
+# Export multiple recordings
+tool: batch_export_recordings
+args: { "ids": ["rec-1", "rec-2"] }
+
+# Move recordings to a new group
+tool: batch_move_recordings
+args: { "ids": ["rec-1", "rec-2"], "group": "regression" }
+```
+
+## Typical Workflows
+
+### Basic Test Workflow
 
 1. Use `navigate` to load the target page
 2. Use `get_page_state` to understand the current DOM
@@ -85,25 +316,65 @@ args: {}
 5. Use `get_page_state` again to verify the resulting DOM state
 6. Repeat steps 2-5 for each test scenario
 
+### Recording & Replay Workflow
+
+1. `start_recording` with a descriptive name and group
+2. Perform interactions manually or via tools (`click_element`, `input_text`, `navigate`)
+3. Use `add_step_group` to organize steps by phase (e.g., "Fill form", "Submit", "Verify")
+4. `stop_recording` with scope "project" or "global"
+5. Later, `execute_task` with a similar description will automatically match and replay the recording
+
+### API Mocking Workflow
+
+1. Use `network_intercept` to add mock rules for API endpoints before navigating
+2. `navigate` to the target page
+3. The page will receive mocked API responses
+4. Use `get_page_state` / `screenshot` to verify the UI renders correctly with mocked data
+5. `network_intercept` with action "clear" to remove rules when done
+
+### Network Debugging Workflow
+
+1. `network_log` with action "start" to begin capturing
+2. Perform page interactions
+3. `network_log` with action "get" and filters to inspect specific requests
+4. Verify request payloads, response codes, headers
+5. `network_log` with action "stop" when done
+
+### File Upload Testing
+
+1. `navigate` to the page with a file upload form
+2. Use `upload_file` for standard file inputs (auto-detects the input or provide a CSS selector)
+3. Use `drag_file` for drag-and-drop upload zones
+4. Verify upload success via `get_page_state` or `screenshot`
+
+### Advanced CDP Workflow
+
+Use `execute_cdp` for scenarios like:
+- Emulating devices or geolocation
+- Overriding user agent
+- Manipulating cookies directly
+- Performance profiling
+- Accessibility audits
+
 ## Test Suites
 
 Pre-defined test cases in `tests/suites/` covering 107 cases across 13 suites:
 
 | Suite | Cases | Coverage |
 |-------|-------|----------|
-| navigation | 6 | URL 导航、跨域、子页面、锚点、刷新重注入 |
-| click-interactions | 10 | 按钮、链接、索引点击、菜单、下拉、Tab、折叠、语言切换 |
-| input-forms | 10 | 搜索、登录、多字段、特殊字符、长文本、下拉选择、复选单选 |
-| scroll-viewport | 10 | 上下左右滚动、多页、懒加载、滚动后操作、返回顶部 |
-| page-state-screenshot | 8 | DOM 状态获取、截图、导航后变化 |
-| natural-language-tasks | 10 | 描述性操作、条件判断、信息提取、多步序列、JS 执行 |
-| modal-popup | 5 | Cookie 弹窗、营销弹窗、对话框、Toast、遮罩层 |
-| agent-control | 5 | 状态查询、停止任务、重启、连续执行 |
-| e2e-workflows | 6 | 首页探索、搜索引擎流程、多页导航、综合序列 |
-| login-auth | 12 | 账号密码、表单校验、找回密码、第三方登录、登录方式切换 |
-| register | 6 | 表单结构、逐字段填写、密码校验、用户协议 |
-| captcha-verification | 12 | 图片/滑块/点选验证码、reCAPTCHA、短信/邮箱验证码 |
-| user-session | 7 | 登录态检测、用户菜单、退出登录、会话管理 |
+| navigation | 6 | URL navigation, cross-domain, sub-pages, anchors |
+| click-interactions | 10 | Buttons, links, index clicks, menus, dropdowns, tabs, collapse |
+| input-forms | 10 | Search, login, multi-field, special chars, long text, select, checkboxes |
+| scroll-viewport | 10 | Up/down/left/right scroll, multi-page, lazy load, scroll-then-act |
+| page-state-screenshot | 8 | DOM state, screenshots, state change detection |
+| natural-language-tasks | 10 | Descriptive ops, conditionals, info extraction, multi-step sequences |
+| modal-popup | 5 | Cookie banners, marketing popups, dialogs, toasts, overlays |
+| agent-control | 5 | Status query, stop/restart task, sequential execution |
+| e2e-workflows | 6 | Homepage exploration, search engine flow, multi-page navigation |
+| login-auth | 12 | Credentials, form validation, password recovery, third-party login |
+| register | 6 | Form structure, field-by-field fill, password validation, terms |
+| captcha-verification | 12 | Image/slider/click captcha, reCAPTCHA, SMS/email verification |
+| user-session | 7 | Login state detection, user menu, logout, session management |
 
 Run a specific suite by reading `tests/suites/<suite>.json` and executing steps sequentially.
 
@@ -111,14 +382,14 @@ Run a specific suite by reading `tests/suites/<suite>.json` and executing steps 
 
 ### LLM Setup
 
-**直接使用 Claude（推荐）** -- 内置 Anthropic → OpenAI 格式适配层，自动检测并启动代理：
+**Claude (recommended)** -- built-in Anthropic-to-OpenAI adapter, no external proxy needed:
 ```
 LLM_BASE_URL=https://api.anthropic.com/v1
 LLM_API_KEY=your-anthropic-api-key
 LLM_MODEL=claude-sonnet-4-20250514
 ```
 
-也支持 OpenAI、通义千问等 OpenAI 兼容接口，详见 `.env.example`。
+Also supports OpenAI, DashScope (Qwen), and any OpenAI-compatible endpoint. See `.env.example`.
 
 ### Starting the Server
 
@@ -127,12 +398,12 @@ cp .env.example .env   # Edit .env with your LLM credentials
 npm run dev             # Start Electron + MCP server
 ```
 
-The Electron app will load camscanner.com/zh, inject page-agent with visual panel, and start MCP server on http://127.0.0.1:3399/mcp.
+The Electron app will inject page-agent and start MCP server on http://127.0.0.1:3399/mcp.
 
 ### MCP Configuration
 
 1. Start the Electron app first: `npm run dev`
-2. Add to your Claude Code MCP settings:
+2. Add to your AI client's MCP settings:
 ```json
 {
   "mcpServers": {

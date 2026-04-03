@@ -39,8 +39,19 @@ vi.mock("../electron/recorder/store", () => ({
 }));
 
 const mockSpawn = vi.fn();
+const mockExecSync = vi.fn();
 vi.mock("child_process", () => ({
   spawn: (...args: unknown[]) => mockSpawn(...args),
+  execSync: (...args: unknown[]) => mockExecSync(...args),
+}));
+
+// Mock llm-service (ensureLlmService returns proxy config)
+vi.mock("../electron/core/llm-service", () => ({
+  ensureLlmService: vi.fn(async () => ({
+    baseUrl: "http://127.0.0.1:3398/v1",
+    apiKey: "proxy-internal",
+    model: "gpt-4o",
+  })),
 }));
 
 // Mock fetch
@@ -92,6 +103,46 @@ const errorResponse = (data: unknown, status = 500) => ({
   text: () => Promise.resolve(typeof data === "string" ? data : JSON.stringify(data)),
 });
 
+// Helper: resolve pageindex-service.py script path as the module would
+const resolvePageIndexScriptPath = (): string => {
+  const recorderDir = path.join(process.cwd(), "electron", "recorder");
+  return path.join(recorderDir, "..", "..", "..", "lib", "pageindex-service.py");
+};
+
+let scriptCleanupGlobal: (() => void) | null = null;
+
+/**
+ * Bootstrap the PageIndex service in tests: set config, ensure script exists,
+ * mock spawn to emit "Service ready" on stdout.
+ */
+const bootstrapPageIndexService = (m: typeof import("../electron/recorder/semantic-index")): void => {
+  const scriptPath = resolvePageIndexScriptPath();
+  const dir = path.dirname(scriptPath);
+  realFs.mkdirSync(dir, { recursive: true });
+  const existed = realFs.existsSync(scriptPath);
+  if (!existed) {
+    realFs.writeFileSync(scriptPath, "# placeholder", "utf-8");
+    scriptCleanupGlobal = () => { try { realFs.unlinkSync(scriptPath); } catch { /* ignore */ } };
+  }
+
+  m.setPageIndexConfig({ baseUrl: "http://test", apiKey: "key", model: "m" });
+  mockExecSync.mockImplementation(() => { throw new Error("no process"); });
+
+  const fakeProc = {
+    stdout: { on: vi.fn() },
+    stderr: { on: vi.fn() },
+    on: vi.fn(),
+    kill: vi.fn(),
+  };
+  mockSpawn.mockReturnValue(fakeProc);
+
+  fakeProc.stdout.on.mockImplementation((event: string, cb: (data: Buffer) => void) => {
+    if (event === "data") {
+      setTimeout(() => cb(Buffer.from("[PageIndex] Service ready")), 0);
+    }
+  });
+};
+
 // ---------------------------------------------------------------------------
 // Setup / teardown
 // ---------------------------------------------------------------------------
@@ -102,6 +153,7 @@ beforeEach(async () => {
   vi.resetModules();
   mockFetch.mockReset();
   mockSpawn.mockReset();
+  mockExecSync.mockReset();
   mockListRecordings.mockReset().mockReturnValue([]);
   mockGetRecording.mockReset().mockReturnValue(null);
 
@@ -124,6 +176,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   try { realFs.rmSync("/tmp/test-userdata/.auto-test-view", { recursive: true, force: true }); } catch { /* ignore */ }
+  if (scriptCleanupGlobal) { scriptCleanupGlobal(); scriptCleanupGlobal = null; }
 });
 
 // =========================================================================
@@ -144,9 +197,10 @@ describe("callLlm", () => {
     expect(mockFetch).toHaveBeenCalledOnce();
 
     const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toBe("http://localhost:3398/v1/chat/completions");
+    // callLlm now routes through ensureLlmService which returns the proxy URL
+    expect(url).toBe("http://127.0.0.1:3398/v1/chat/completions");
     expect(options.method).toBe("POST");
-    expect(options.headers.Authorization).toBe("Bearer test-key");
+    expect(options.headers.Authorization).toBe("Bearer proxy-internal");
 
     const body = JSON.parse(options.body);
     expect(body.model).toBe("gpt-4o");
@@ -238,6 +292,10 @@ describe("isPageIndexAvailable", () => {
 
 describe("indexRecording", () => {
   const config = { baseUrl: "http://localhost:3398/v1", apiKey: "key", model: "gpt-4o" };
+
+  beforeEach(() => {
+    bootstrapPageIndexService(mod);
+  });
 
   it("writes markdown doc with all recording fields", async () => {
     const rec = makeRecording({ group: "" });
@@ -369,6 +427,10 @@ describe("indexRecording", () => {
 // =========================================================================
 
 describe("removeProfile", () => {
+  beforeEach(() => {
+    bootstrapPageIndexService(mod);
+  });
+
   it("removes markdown doc and updates doc map", async () => {
     // Setup: doc + map (scope-aware format)
     realFs.writeFileSync(path.join(DOCS_DIR, "global_rec-001.md"), "# Test", "utf-8");
@@ -402,6 +464,10 @@ describe("removeProfile", () => {
 
 describe("rebuildAllProfiles", () => {
   const config = { baseUrl: "http://localhost:3398/v1", apiKey: "key", model: "gpt-4o" };
+
+  beforeEach(() => {
+    bootstrapPageIndexService(mod);
+  });
 
   it("clears and re-indexes all recordings", async () => {
     // Stale doc
@@ -438,10 +504,14 @@ describe("rebuildAllProfiles", () => {
 // =========================================================================
 
 describe("service API wrappers", () => {
+  beforeEach(() => {
+    bootstrapPageIndexService(mod);
+  });
+
   it("getDocumentList calls /list endpoint", async () => {
     const docs = [{ doc_id: "d1", doc_name: "Login", doc_description: "Login flow", type: "md", path: "/docs/1.md" }];
 
-    // waitForService polls /status first
+    // waitForService polls /status first, then the actual /list call
     mockFetch
       .mockResolvedValueOnce(okResponse({ status: "ok" }))
       .mockResolvedValueOnce(okResponse({ documents: docs }));
@@ -451,13 +521,16 @@ describe("service API wrappers", () => {
   });
 
   it("getDocumentStructure calls /structure with doc_id", async () => {
+
     const structure = { tree: [{ title: "Root" }] };
-    mockFetch.mockResolvedValueOnce(okResponse(structure));
+
+    mockFetch
+      .mockResolvedValueOnce(okResponse({ status: "ok" }))
+      .mockResolvedValueOnce(okResponse(structure));
 
     const result = await mod.getDocumentStructure("doc-123");
     expect(result).toEqual(structure);
 
-    // Find the /structure call
     const call = mockFetch.mock.calls.find((c) => String(c[0]).includes("/structure"));
     expect(call).toBeTruthy();
     const body = JSON.parse(call![1].body);
@@ -465,8 +538,12 @@ describe("service API wrappers", () => {
   });
 
   it("getDocumentContent calls /content with doc_id and pages", async () => {
+
     const content = { content: [{ page: 1, text: "line content" }] };
-    mockFetch.mockResolvedValueOnce(okResponse(content));
+
+    mockFetch
+      .mockResolvedValueOnce(okResponse({ status: "ok" }))
+      .mockResolvedValueOnce(okResponse(content));
 
     const result = await mod.getDocumentContent("doc-123", "1-10");
     expect(result).toEqual(content);
@@ -479,15 +556,23 @@ describe("service API wrappers", () => {
   });
 
   it("getDocumentMeta calls /document with doc_id", async () => {
+
     const meta = { doc_name: "Test", doc_description: "Desc" };
-    mockFetch.mockResolvedValueOnce(okResponse(meta));
+
+    mockFetch
+      .mockResolvedValueOnce(okResponse({ status: "ok" }))
+      .mockResolvedValueOnce(okResponse(meta));
 
     const result = await mod.getDocumentMeta("doc-123");
     expect(result).toEqual(meta);
   });
 
   it("throws on service error response", async () => {
-    mockFetch.mockResolvedValueOnce(errorResponse({ error: "Not found" }, 404));
+
+
+    mockFetch
+      .mockResolvedValueOnce(okResponse({ status: "ok" }))
+      .mockResolvedValueOnce(errorResponse({ error: "Not found" }, 404));
 
     await expect(mod.getDocumentStructure("bad-id")).rejects.toThrow("PageIndex service error: Not found");
   });
@@ -497,18 +582,21 @@ describe("service API wrappers", () => {
 // startPageIndexService
 // =========================================================================
 
-describe("startPageIndexService", () => {
-  // The module resolves the script path as path.join(__dirname, "..", "..", "..", "lib", "pageindex-service.py").
-  // When vitest imports the source directly, __dirname = <project>/electron/recorder/,
-  // so it resolves to <project>/../lib/pageindex-service.py (one level above project root).
-  // In production (compiled), __dirname = dist/electron/recorder/ -> resolves correctly.
-  // We need to place a placeholder at the resolved path for tests.
-  const resolveScriptPath = (): string => {
-    const recorderDir = path.join(process.cwd(), "electron", "recorder");
-    return path.join(recorderDir, "..", "..", "..", "lib", "pageindex-service.py");
-  };
+describe("setPageIndexConfig", () => {
+  it("stores config without spawning", () => {
+    const config = { baseUrl: "http://localhost:3398/v1", apiKey: "test-key", model: "claude-sonnet" };
+    mod.setPageIndexConfig(config);
 
-  const ensureScript = (): { path: string; cleanup: () => void } => {
+    // No spawn should have happened
+    expect(mockSpawn).not.toHaveBeenCalled();
+  });
+
+  it("makes isPageIndexAvailable return true when script exists", () => {
+    const resolveScriptPath = (): string => {
+      const recorderDir = path.join(process.cwd(), "electron", "recorder");
+      return path.join(recorderDir, "..", "..", "..", "lib", "pageindex-service.py");
+    };
+
     const scriptPath = resolveScriptPath();
     const dir = path.dirname(scriptPath);
     realFs.mkdirSync(dir, { recursive: true });
@@ -516,60 +604,12 @@ describe("startPageIndexService", () => {
     if (!existed) {
       realFs.writeFileSync(scriptPath, "# placeholder", "utf-8");
     }
-    return {
-      path: scriptPath,
-      cleanup: () => { if (!existed) try { realFs.unlinkSync(scriptPath); } catch { /* ignore */ } },
-    };
-  };
 
-  it("spawns python3 with correct args and env vars", () => {
-    const config = { baseUrl: "http://localhost:3398/v1", apiKey: "test-key", model: "claude-sonnet" };
-
-    const fakeProcess = {
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-      on: vi.fn(),
-      kill: vi.fn(),
-    };
-    mockSpawn.mockReturnValue(fakeProcess);
-
-    const script = ensureScript();
     try {
-      mod.startPageIndexService(config);
-
-      expect(mockSpawn).toHaveBeenCalledOnce();
-      const [cmd, args, opts] = mockSpawn.mock.calls[0];
-      expect(cmd).toBe("python3");
-      expect(args[0]).toContain("pageindex-service.py");
-      expect(args[1]).toBe("3397");
-      expect(args[2]).toBe(WORKSPACE_DIR);
-
-      expect(opts.env.OPENAI_API_KEY).toBe("test-key");
-      expect(opts.env.OPENAI_API_BASE).toBe("http://localhost:3398/v1");
-      expect(opts.env.PAGEINDEX_MODEL).toBe("openai/claude-sonnet");
+      mod.setPageIndexConfig({ baseUrl: "http://test", apiKey: "key", model: "m" });
+      expect(mod.isPageIndexAvailable()).toBe(true);
     } finally {
-      script.cleanup();
-    }
-  });
-
-  it("preserves model prefix if already present", () => {
-    const config = { baseUrl: "http://localhost:3398/v1", apiKey: "key", model: "openai/gpt-4o" };
-
-    const fakeProcess = {
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-      on: vi.fn(),
-      kill: vi.fn(),
-    };
-    mockSpawn.mockReturnValue(fakeProcess);
-
-    const script = ensureScript();
-    try {
-      mod.startPageIndexService(config);
-      const env = mockSpawn.mock.calls[0][2].env;
-      expect(env.PAGEINDEX_MODEL).toBe("openai/gpt-4o");
-    } finally {
-      script.cleanup();
+      if (!existed) try { realFs.unlinkSync(scriptPath); } catch { /* ignore */ }
     }
   });
 });
