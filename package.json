@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/recording-semantic-index.test.ts tests/recording-matcher.test.ts",
-    "test:integration": "vitest run tests/pageindex-service.test.ts"
+    "test:integration": "vitest run tests/pageindex-service.test.ts",
+    "start:pool": "node dist/electron/pool/proxy-server.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

@@ -9,7 +9,7 @@ import { type ChildProcess, execSync, spawn } from "child_process";
 import { logger } from "./logger";
 
 const LITELLM_PROXY_SCRIPT = path.join(__dirname, "..", "..", "..", "lib", "litellm-proxy.py");
-const LITELLM_PORT = 3398;
+const LITELLM_PORT = parseInt(process.env.LLM_PROXY_PORT ?? "3398", 10);
 const LITELLM_BASE_URL = `http://127.0.0.1:${LITELLM_PORT}/v1`;
 
 /**

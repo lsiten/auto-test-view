@@ -55,7 +55,7 @@ import { indexRecording } from "../recorder/semantic-index";
 const SERVER_NAME = "auto-test-view";
 const SERVER_VERSION = "1.0.0";
 
-const MCP_PORT = 3399;
+const MCP_PORT = parseInt(process.env.MCP_PORT ?? "3399", 10);
 
 let httpServer: http.Server | null = null;
 const sessions = new Map<string, { server: McpServer; transport: StreamableHTTPServerTransport }>();

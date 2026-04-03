@@ -52,6 +52,7 @@ vi.mock("../electron/core/llm-service", () => ({
     apiKey: "proxy-internal",
     model: "gpt-4o",
   })),
+  resolvePythonPath: vi.fn(() => "/usr/bin/python3"),
 }));
 
 // Mock fetch

@@ -73,7 +73,10 @@ const setupCspBypass = (): void => {
 const setupDownloadHandler = (): void => {
   session.defaultSession.on("will-download", (_event, item) => {
     const filename = item.getFilename();
-    const savePath = path.join(projectDir, ".auto-test-view", "tmp", "downloads", filename);
+    const ext = path.extname(filename);
+    const base = path.basename(filename, ext);
+    const uniqueSuffix = Date.now().toString(36);
+    const savePath = path.join(projectDir, ".auto-test-view", "tmp", "downloads", `${base}-${uniqueSuffix}${ext}`);
 
     logger.info(`Download intercepted: ${filename} -> ${savePath}`);
     item.setSavePath(savePath);
@@ -272,6 +275,12 @@ const bootstrap = async (): Promise<void> => {
   await startMcpServer();
   logger.info("Application bootstrap complete");
 };
+
+const customUserDataDir = process.env.ELECTRON_USER_DATA_DIR;
+if (customUserDataDir) {
+  app.setPath("userData", customUserDataDir);
+  logger.info(`Using custom userData directory: ${customUserDataDir}`);
+}
 
 app.whenReady().then(() => {
   bootstrap().catch((err) => {

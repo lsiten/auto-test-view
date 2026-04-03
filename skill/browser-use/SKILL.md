@@ -20,15 +20,42 @@
 
 ## 一、前置条件
 
-1. auto-test-view 已启动（`npm run dev`）
-2. MCP 连接已配置（endpoint: `http://127.0.0.1:3399/mcp`）
-3. 验证连接：调用 `get_status` 确认服务可用
+1. MCP 连接已配置（endpoint: `http://127.0.0.1:3399/mcp`）
+2. `.env` 已配置 LLM 凭证（首次使用需从 `.env.example` 复制并填写）
 
-**首次使用检查**：
+**自动启动检查（每次执行前必须执行）**：
+
 ```
-get_status → 成功 → 就绪
-get_status → 失败 → 提示用户启动 auto-test-view
+1. 调用 get_status 检测 MCP 连接
+   → 成功 → 就绪，继续操作
+   → 失败（连接拒绝）→ 进入自动启动流程：
+     a. 检查 dist/electron/pool/proxy-server.js 是否存在
+        → 不存在：运行 node esbuild.dev.mjs 构建
+     b. 后台启动 pool：node dist/electron/pool/proxy-server.js &
+     c. 每 1 秒重试 get_status，最多等 60 秒
+     d. 超时仍失败 → 报告错误，提示用户检查 .env 和日志
 ```
+
+**Bash 自动启动脚本**：
+```bash
+# 检测并自动启动 pool
+if ! curl -sf http://127.0.0.1:3399/mcp > /dev/null 2>&1; then
+  echo "Pool not running, starting..."
+  cd /path/to/auto-test-view
+  [ -f dist/electron/pool/proxy-server.js ] || node esbuild.dev.mjs
+  nohup node dist/electron/pool/proxy-server.js > /tmp/pool.log 2>&1 &
+  # Wait for healthy
+  for i in $(seq 1 60); do
+    curl -sf http://127.0.0.1:3399/mcp > /dev/null 2>&1 && break
+    sleep 1
+  done
+fi
+```
+
+Pool 管理多个 Electron 实例，自动扩缩容：
+- 最少保留 1 个实例，最多不超过 CPU 核心数
+- 空闲超过 5 分钟的多余实例自动回收
+- 崩溃的实例自动重启（保持最小实例数）
 
 ---
 

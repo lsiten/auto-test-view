@@ -450,9 +450,11 @@ export const takeScreenshot = async (savePath?: string): Promise<string> => {
   const defaultDir = projectDir
     ? path.join(projectDir, ".auto-test-view", "tmp", "screenshots")
     : os.tmpdir();
+  const crypto = await import("crypto");
+  const uniqueId = crypto.randomBytes(4).toString("hex");
   const outputPath = savePath ?? path.join(
     defaultDir,
-    `screenshot-${Date.now()}.png`
+    `screenshot-${Date.now()}-${uniqueId}.png`
   );
 
   const dir = path.dirname(outputPath);

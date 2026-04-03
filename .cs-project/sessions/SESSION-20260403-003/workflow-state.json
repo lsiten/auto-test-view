@@ -1,0 +1,29 @@
+{
+  "sessionId": "SESSION-20260403-003",
+  "taskRef": "TASK-009",
+  "currentPhase": "verifying",
+  "pendingAction": "最终验证通过，等待用户 Review",
+  "mode": "full",
+  "stepCount": 5,
+  "agents": {
+    "implementer": "开发-小A",
+    "specReviewer": "Spec审查-小B",
+    "qualityReviewer": "质量审查-小C"
+  },
+  "split": {
+    "subtasks": ["TASK-009-01", "TASK-009-02", "TASK-009-03"],
+    "executionPlan": "serial: 01 → 02 → 03",
+    "currentSubtaskId": "TASK-009-03"
+  },
+  "subAgentPhase": "implementer",
+  "reviewCycle": 1,
+  "changeHistory": [
+    {
+      "level": "moderate",
+      "description": "补强崩溃恢复、userData 隔离、文件名冲突",
+      "date": "2026-04-03",
+      "affectedFiles": ["instance-manager.ts", "proxy-server.ts", "ipc-handlers.ts", "main.ts"]
+    }
+  ],
+  "createdAt": "2026-04-03"
+}
