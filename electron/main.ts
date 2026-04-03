@@ -9,13 +9,14 @@ import * as path from "path";
 import * as dotenv from "dotenv";
 import { logger } from "./core/logger";
 import { injectPageAgent } from "./core/agent-injector";
-import { setupIpcHandlers, setMainWindow, setLlmConfig, navigateTo } from "./core/ipc-handlers";
+import { setupIpcHandlers, setMainWindow, setLlmConfig, setProjectDir, navigateTo, getPendingUploadFiles, clearPendingUploadFiles } from "./core/ipc-handlers";
+import { initCdpClient } from "./core/cdp-client";
 import { startMcpServer } from "./mcp/server";
-import { startLlmProxy } from "./core/llm-proxy";
+import { setLlmServiceConfig, ensureLlmService, stopLlmService } from "./core/llm-service";
 import { initRecorderStore } from "./recorder/store";
 import { isRecording, startRecording, onEvent as recorderOnEvent } from "./recorder/recorder";
 import { injectRecorder } from "./recorder/inject";
-import { startPageIndexService, stopPageIndexService } from "./recorder/semantic-index";
+import { setPageIndexConfig, stopPageIndexService } from "./recorder/semantic-index";
 
 dotenv.config();
 
@@ -25,30 +26,18 @@ const RECORDER_UI_PAGE = path.join(__dirname, "..", "..", "electron", "ui", "rec
 const WINDOW_WIDTH = 1280;
 const WINDOW_HEIGHT = 900;
 
-const ANTHROPIC_HOSTS = ["api.anthropic.com", "anthropic"];
+/** Project root directory — drives .auto-test-view/tmp/ paths for screenshots & downloads. */
+const projectDir = process.env.AUTO_TEST_PROJECT_DIR || process.cwd();
 
-const isAnthropicUrl = (baseUrl: string): boolean => {
-  const lower = baseUrl.toLowerCase();
-  // Check full URL (hostname + path) for anthropic markers
-  return ANTHROPIC_HOSTS.some((host) => lower.includes(host));
-};
-
-const resolveLlmConfig = async (): Promise<{
+const resolveLlmConfig = (): {
   readonly baseUrl: string;
   readonly apiKey: string;
   readonly model: string;
-}> => {
-  const rawBaseUrl = process.env.LLM_BASE_URL ?? "";
+} => {
+  const baseUrl = process.env.LLM_BASE_URL ?? "";
   const apiKey = process.env.LLM_API_KEY ?? "";
   const model = process.env.LLM_MODEL ?? "";
-
-  if (isAnthropicUrl(rawBaseUrl)) {
-    logger.info("Detected Anthropic-compatible API URL, starting built-in LLM proxy...");
-    const proxyBaseUrl = await startLlmProxy(apiKey, rawBaseUrl);
-    return { baseUrl: proxyBaseUrl, apiKey: "proxy-internal", model } as const;
-  }
-
-  return { baseUrl: rawBaseUrl, apiKey, model } as const;
+  return { baseUrl, apiKey, model };
 };
 
 let llmConfig: { readonly baseUrl: string; readonly apiKey: string; readonly model: string };
@@ -84,7 +73,7 @@ const setupCspBypass = (): void => {
 const setupDownloadHandler = (): void => {
   session.defaultSession.on("will-download", (_event, item) => {
     const filename = item.getFilename();
-    const savePath = path.join(os.tmpdir(), "auto-test-downloads", filename);
+    const savePath = path.join(projectDir, ".auto-test-view", "tmp", "downloads", filename);
 
     logger.info(`Download intercepted: ${filename} -> ${savePath}`);
     item.setSavePath(savePath);
@@ -109,6 +98,13 @@ const setupDownloadHandler = (): void => {
   };
 
   dialog.showOpenDialog = async (...args: Parameters<typeof dialog.showOpenDialog>) => {
+    const pending = getPendingUploadFiles();
+    if (pending.length > 0) {
+      const files = [...pending];
+      clearPendingUploadFiles();
+      logger.info(`showOpenDialog: returning ${files.length} pending file(s)`);
+      return { canceled: false, filePaths: files } as Awaited<ReturnType<typeof originalShowOpenDialog>>;
+    }
     logger.info("Suppressed showOpenDialog");
     return { canceled: true, filePaths: [] } as Awaited<ReturnType<typeof originalShowOpenDialog>>;
   };
@@ -144,9 +140,15 @@ const createWindow = async (): Promise<BrowserWindow> => {
   win.webContents.on("dom-ready", () => {
     const currentUrl = win.webContents.getURL();
     logger.info(`dom-ready: ${currentUrl}`);
-    injectPageAgent(win, llmConfig).catch((err) => {
-      logger.error("page-agent injection failed on dom-ready", err);
-    });
+    ensureLlmService()
+      .then((resolvedConfig) => {
+        injectPageAgent(win, resolvedConfig).catch((err) => {
+          logger.error("page-agent injection failed on dom-ready", err);
+        });
+      })
+      .catch((err) => {
+        logger.error("LLM service start failed", err);
+      });
 
     // Inject recorder script if currently recording
     if (isRecording()) {
@@ -189,22 +191,26 @@ const createWindow = async (): Promise<BrowserWindow> => {
 };
 
 const bootstrap = async (): Promise<void> => {
-  llmConfig = await resolveLlmConfig();
+  llmConfig = resolveLlmConfig();
+  setLlmServiceConfig(llmConfig);
 
   setupCspBypass();
   setupDownloadHandler();
   setupIpcHandlers();
   setLlmConfig(llmConfig);
+  setProjectDir(projectDir);
 
   // Initialize recorder store with project directory for dual-scope support
-  const projectDir = process.env.AUTO_TEST_PROJECT_DIR || process.cwd();
   initRecorderStore(projectDir);
 
-  // Start PageIndex Python service for recording semantic indexing
-  startPageIndexService(llmConfig);
+  // Store PageIndex config for lazy startup on first use
+  setPageIndexConfig(llmConfig);
 
   const win = await createWindow();
   logger.info("Electron window created and page loaded");
+
+  // Initialize CDP client after window is fully set up (lazy attach)
+  initCdpClient(win);
 
   // IPC: browser navigation controls (back / forward / refresh)
   ipcMain.on("nav-back", () => {
@@ -276,6 +282,7 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   stopPageIndexService();
+  stopLlmService();
   app.quit();
 });
 

@@ -5,7 +5,7 @@
   "main": "dist/electron/main.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc && electron dist/electron/main.js",
+    "dev": "node esbuild.dev.mjs && electron dist/electron/main.js",
     "start": "electron dist/electron/main.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -21,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^22.13.10",
     "electron": "^35.1.2",
+    "esbuild": "^0.27.7",
     "typescript": "^5.7.3",
     "vitest": "^4.1.2"
   }

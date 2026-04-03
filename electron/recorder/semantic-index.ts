@@ -3,7 +3,7 @@
  *
  * Architecture:
  *   - Python HTTP service (`lib/pageindex-service.py`) wraps PageIndexClient
- *   - Electron spawns the service on startup, communicates via HTTP
+ *   - Electron lazy-starts the service on first use, communicates via HTTP
  *   - Each recording is converted to Markdown and indexed as a separate document
  *   - Retrieval uses PageIndex tree-based approach (structure + content)
  *
@@ -16,8 +16,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { type ChildProcess, spawn } from "child_process";
+import { type ChildProcess, execSync, spawn } from "child_process";
 import { logger } from "../core/logger";
+import { ensureLlmService, resolvePythonPath } from "../core/llm-service";
 import type { Recording, RecordingScope } from "./store";
 import { listRecordings, getRecording } from "./store";
 
@@ -78,22 +79,24 @@ const ensureDirs = (): void => {
 };
 
 // ---------------------------------------------------------------------------
-// LLM client (for matching prompts - direct OpenAI-compatible calls)
+// LLM client (for matching prompts - uses shared litellm service)
 // ---------------------------------------------------------------------------
 
 export const callLlm = async (
   messages: ReadonlyArray<{ readonly role: string; readonly content: string }>,
-  config: LlmConfig
+  _config: LlmConfig
 ): Promise<string> => {
-  const url = `${config.baseUrl}/chat/completions`;
+  // Use the shared litellm service
+  const llmResolved = await ensureLlmService();
+  const url = `${llmResolved.baseUrl}/chat/completions`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${config.apiKey}`,
+      "Authorization": `Bearer ${llmResolved.apiKey}`,
     },
     body: JSON.stringify({
-      model: config.model,
+      model: _config.model,
       messages,
       max_tokens: 4096,
       temperature: 0,
@@ -114,21 +117,46 @@ export const callLlm = async (
 };
 
 // ---------------------------------------------------------------------------
-// PageIndex service lifecycle
+// PageIndex service lifecycle (lazy start)
 // ---------------------------------------------------------------------------
 
 let serviceProcess: ChildProcess | null = null;
 let serviceReady = false;
+let pageIndexConfig: LlmConfig | null = null;
+
+/** Store config without starting any service */
+export const setPageIndexConfig = (config: LlmConfig): void => {
+  pageIndexConfig = config;
+};
 
 /**
- * Start the PageIndex Python HTTP service as a child process.
- * Called once during app bootstrap with the resolved LLM config.
+ * Spawn the PageIndex Python HTTP service process.
  */
-export const startPageIndexService = (config: LlmConfig): void => {
-  if (serviceProcess) {
-    logger.warn("[PageIndex] Service already running");
-    return;
+/**
+ * Kill any existing process listening on the given port.
+ * Prevents zombie processes from accumulating across restarts.
+ */
+const killProcessOnPort = (port: number): void => {
+  try {
+    const output = execSync(`lsof -ti :${port}`, { encoding: "utf-8" }).trim();
+    if (output) {
+      const pids = output.split("\n").map((p) => p.trim()).filter(Boolean);
+      for (const pid of pids) {
+        try {
+          process.kill(Number(pid), "SIGTERM");
+          logger.info(`Killed stale process on port ${port}: PID ${pid}`);
+        } catch {
+          // Process may have already exited
+        }
+      }
+    }
+  } catch {
+    // lsof returns non-zero when no process found — expected
   }
+};
+
+const startPageIndexProcess = (llmBaseUrl: string, llmApiKey: string): void => {
+  if (serviceProcess) return;
 
   ensureDirs();
 
@@ -137,24 +165,28 @@ export const startPageIndexService = (config: LlmConfig): void => {
     return;
   }
 
+  // Kill any stale process from a previous run
+  killProcessOnPort(PAGEINDEX_PORT);
+
   // Map app's LLM config to PageIndex environment variables.
-  // PageIndex uses litellm under the hood, which expects OPENAI_API_BASE/KEY.
-  // The model needs an "openai/" prefix for litellm to route through OpenAI-compatible endpoints.
-  const pageindexModel = config.model.includes("/")
-    ? config.model
-    : `openai/${config.model}`;
+  // PageIndex uses HTTP calls to the shared litellm service via OPENAI_API_BASE.
+  const pageindexModel = (pageIndexConfig?.model ?? "").includes("/")
+    ? pageIndexConfig!.model
+    : `openai/${pageIndexConfig!.model}`;
 
   const env = {
     ...process.env,
-    OPENAI_API_KEY: config.apiKey,
-    OPENAI_API_BASE: config.baseUrl,
+    OPENAI_API_KEY: llmApiKey,
+    OPENAI_API_BASE: llmBaseUrl,
     PAGEINDEX_MODEL: pageindexModel,
   };
 
   const workspaceDir = getWorkspaceDir();
 
+  const pythonBin = resolvePythonPath();
+  logger.info(`[PageIndex] Using Python at ${pythonBin}`);
   serviceProcess = spawn(
-    "python3",
+    pythonBin,
     [PAGEINDEX_SERVICE_SCRIPT, String(PAGEINDEX_PORT), workspaceDir],
     { env, stdio: ["ignore", "pipe", "pipe"] }
   );
@@ -250,6 +282,31 @@ const waitForService = async (timeoutMs: number = 30_000): Promise<boolean> => {
     }
   }
   return false;
+};
+
+/**
+ * Ensure the PageIndex service is running and ready.
+ * Lazy-starts the service on first call.
+ */
+const ensurePageIndexService = async (): Promise<boolean> => {
+  if (serviceReady) return true;
+
+  if (serviceProcess) {
+    // Already spawning, wait for it
+    return waitForService();
+  }
+
+  if (!pageIndexConfig) {
+    logger.warn("[PageIndex] Config not set, cannot start service");
+    return false;
+  }
+
+  // Ensure litellm service is up first (PageIndex needs it for LLM calls)
+  const llmResolved = await ensureLlmService();
+
+  // Now spawn PageIndex with litellm service URL as OPENAI_API_BASE
+  startPageIndexProcess(llmResolved.baseUrl, llmResolved.apiKey);
+  return waitForService();
 };
 
 // ---------------------------------------------------------------------------
@@ -350,7 +407,7 @@ export const indexRecording = async (
 
   const docPath = writeRecordingDoc(recording, scope);
 
-  const ready = await waitForService();
+  const ready = await ensurePageIndexService();
   if (!ready) {
     logger.error("[PageIndex] Service not available, skipping indexing");
     return;
@@ -401,7 +458,7 @@ export const removeProfile = async (
   }
 
   try {
-    const ready = await waitForService(5_000);
+    const ready = await ensurePageIndexService();
     if (ready) {
       await serviceRequest("/remove", "POST", { doc_id: entry.docId });
     }
@@ -422,7 +479,7 @@ export const rebuildAllProfiles = async (
 ): Promise<number> => {
   logger.info("[PageIndex] Rebuilding all recording indexes");
 
-  const ready = await waitForService();
+  const ready = await ensurePageIndexService();
   if (!ready) {
     throw new Error("PageIndex service not available");
   }
@@ -483,7 +540,7 @@ export const rebuildAllProfiles = async (
 export const getDocumentList = async (
   scope?: RecordingScope
 ): Promise<ReadonlyArray<PageIndexDocument>> => {
-  const ready = await waitForService(5_000);
+  const ready = await ensurePageIndexService();
   if (!ready) return [];
 
   const result = (await serviceRequest("/list", "POST")) as {
@@ -511,6 +568,8 @@ export const getDocumentList = async (
 export const getDocumentStructure = async (
   docId: string
 ): Promise<unknown> => {
+  const ready = await ensurePageIndexService();
+  if (!ready) throw new Error("PageIndex service not available");
   return serviceRequest("/structure", "POST", { doc_id: docId });
 };
 
@@ -521,6 +580,8 @@ export const getDocumentContent = async (
   docId: string,
   pages: string
 ): Promise<unknown> => {
+  const ready = await ensurePageIndexService();
+  if (!ready) throw new Error("PageIndex service not available");
   return serviceRequest("/content", "POST", { doc_id: docId, pages });
 };
 
@@ -530,6 +591,8 @@ export const getDocumentContent = async (
 export const getDocumentMeta = async (
   docId: string
 ): Promise<unknown> => {
+  const ready = await ensurePageIndexService();
+  if (!ready) throw new Error("PageIndex service not available");
   return serviceRequest("/document", "POST", { doc_id: docId });
 };
 
@@ -567,7 +630,7 @@ export const getIndexStatus = (scope?: RecordingScope): {
  * Check if PageIndex service is available.
  */
 export const isPageIndexAvailable = (): boolean => {
-  return serviceReady && fs.existsSync(PAGEINDEX_SERVICE_SCRIPT);
+  return pageIndexConfig !== null && fs.existsSync(PAGEINDEX_SERVICE_SCRIPT);
 };
 
 /**

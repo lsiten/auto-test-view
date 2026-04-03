@@ -10,8 +10,83 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import * as http from "http";
 
-const MCP_BASE = "http://127.0.0.1:3399/mcp";
+const MCP_HOST = "127.0.0.1";
+const MCP_PORT = 3399;
+const MCP_PATH = "/mcp";
+const MCP_BASE = `http://${MCP_HOST}:${MCP_PORT}${MCP_PATH}`;
+
+/**
+ * Send an HTTP POST to MCP and read the SSE response until a JSON-RPC result
+ * or error is found. Uses raw http.request so we can consume the stream
+ * incrementally and close it as soon as the result arrives.
+ */
+const mcpPost = (
+  body: unknown,
+  headers: Record<string, string>,
+  timeoutMs: number
+): Promise<{ data: unknown; responseHeaders: http.IncomingHttpHeaders }> => {
+  const payload = JSON.stringify(body);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      req.destroy();
+      reject(new Error(`MCP request timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    const req = http.request(
+      {
+        hostname: MCP_HOST,
+        port: MCP_PORT,
+        path: MCP_PATH,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+          ...headers,
+        },
+      },
+      (res) => {
+        let buffer = "";
+        res.setEncoding("utf-8");
+        res.on("data", (chunk: string) => {
+          buffer += chunk;
+          // Scan for SSE data lines containing JSON-RPC result/error
+          const lines = buffer.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const parsed = JSON.parse(line.substring(6));
+                if (parsed.result || parsed.error) {
+                  clearTimeout(timer);
+                  res.destroy(); // close the stream immediately
+                  resolve({ data: parsed, responseHeaders: res.headers });
+                  return;
+                }
+              } catch {
+                // incomplete JSON, keep reading
+              }
+            }
+          }
+        });
+        res.on("end", () => {
+          clearTimeout(timer);
+          reject(new Error(`SSE stream ended without result. Buffer: ${buffer.substring(0, 200)}`));
+        });
+        res.on("error", (err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+      }
+    );
+    req.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    req.write(payload);
+    req.end();
+  });
+};
 const EXECUTE_TASK_TIMEOUT = 480_000;
 const DEFAULT_TIMEOUT = 120_000;
 
@@ -77,13 +152,8 @@ let previousUrl = "";
 const nextId = (): number => ++requestId;
 
 const initSession = async (): Promise<string> => {
-  const res = await fetch(MCP_BASE, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json, text/event-stream",
-    },
-    body: JSON.stringify({
+  const { responseHeaders } = await mcpPost(
+    {
       jsonrpc: "2.0",
       id: nextId(),
       method: "initialize",
@@ -92,16 +162,15 @@ const initSession = async (): Promise<string> => {
         capabilities: {},
         clientInfo: { name: "test-runner", version: "1.0" },
       },
-    }),
-  });
+    },
+    {},
+    30_000
+  );
 
-  const sessionId = res.headers.get("mcp-session-id");
+  const sessionId = responseHeaders["mcp-session-id"] as string | undefined;
   if (!sessionId) {
     throw new Error("Failed to get MCP session ID");
   }
-
-  // Consume the SSE body
-  await res.text();
   return sessionId;
 };
 
@@ -111,45 +180,21 @@ const callTool = async (
   args: Record<string, unknown>,
   timeoutMs: number = DEFAULT_TIMEOUT
 ): Promise<unknown> => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const res = await fetch(MCP_BASE, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json, text/event-stream",
-        "mcp-session-id": sessionId,
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: nextId(),
-        method: "tools/call",
-        params: { name: toolName, arguments: args },
-      }),
-      signal: controller.signal,
-    });
-
-    const text = await res.text();
-
-    // Parse SSE response
-    const lines = text.split("\n");
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = JSON.parse(line.substring(6));
-        if (data.result) {
-          return data.result;
-        }
-        if (data.error) {
-          throw new Error(data.error.message || JSON.stringify(data.error));
-        }
-      }
-    }
-    throw new Error(`Unexpected response: ${text.substring(0, 200)}`);
-  } finally {
-    clearTimeout(timer);
+  const { data } = await mcpPost(
+    {
+      jsonrpc: "2.0",
+      id: nextId(),
+      method: "tools/call",
+      params: { name: toolName, arguments: args },
+    },
+    { "mcp-session-id": sessionId },
+    timeoutMs
+  );
+  const rpc = data as { result?: unknown; error?: { message?: string } };
+  if (rpc.error) {
+    throw new Error(rpc.error.message || JSON.stringify(rpc.error));
   }
+  return rpc.result;
 };
 
 const extractText = (result: unknown): string => {

@@ -156,6 +156,7 @@ Skills 是 AI 技能定义文件，安装后 AI 助手能更高效地使用 auto
 ```bash
 # Claude Code 一键安装所有 Skills
 cp skill/auto-test.md ~/.claude/skills/auto-test.md
+cp -r skill/browser-use ~/.claude/skills/browser-use
 cp -r skill/test-generator ~/.claude/skills/test-generator
 ```
 
@@ -236,6 +237,22 @@ cp -r skill/test-generator ~/.claude/skills/test-generator
 cp skill/auto-test.md ~/.claude/skills/auto-test.md
 ```
 
+### browser-use（skill/browser-use/）
+
+浏览器自动化操作技能。核心能力：
+- **自然语言操作**：通过 `execute_task` 用自然语言描述操作意图，AI 自动执行
+- **复杂多步编排**：10 种编排模式（登录、搜索筛选、表单填写、Mock API、移动端模拟等）
+- **录制与管理**：录制操作序列、语义匹配自动回放、分组管理、批量操作
+- **网络操作**：请求拦截（mock/block/delay/fail）、流量监控
+- **文件操作**：自动上传、拖拽上传
+
+技能文档：`SKILL.md`（核心流程）+ `reference/`（工具速查、编排模式、录制指南）
+
+**Claude Code 安装**：
+```bash
+cp -r skill/browser-use ~/.claude/skills/browser-use
+```
+
 ### test-generator（skill/test-generator/）
 
 高级测试用例生成技能。核心能力：
@@ -292,7 +309,8 @@ tests/
   suites/              # 预置测试套件（13 个套件，107 个用例）
   *.test.ts            # 单元测试和集成测试
 skill/
-  auto-test.md         # MCP 技能文档
+  auto-test.md         # MCP 工具参考文档
+  browser-use/         # 浏览器自动化操作技能
   test-generator/      # 测试用例生成技能
 ```
 
