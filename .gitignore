@@ -7,3 +7,7 @@ dist/
 .auto-test-view/
 .venv/
 __pycache__/
+lib/pageindex/examples/
+lib/pageindex/cookbook/
+lib/pageindex/.github/
+lib/pageindex/.claude/
