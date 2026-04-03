@@ -2,20 +2,128 @@
  * Test runner for auto-test-view MCP test suites.
  * Reads JSON test suite files, executes steps via MCP, validates assertions.
  *
+ * Supports parallel execution: each suite gets its own MCP session (and thus
+ * its own Electron instance via the proxy pool). Concurrency is controlled by
+ * --concurrency N (default: 4, capped by available pool instances).
+ *
  * Usage:
- *   npx ts-node tests/run-tests.ts                    # run all suites
- *   npx ts-node tests/run-tests.ts navigation          # run specific suite
+ *   npx ts-node tests/run-tests.ts                           # run all suites (parallel)
+ *   npx ts-node tests/run-tests.ts navigation                # run specific suite
  *   npx ts-node tests/run-tests.ts navigation,scroll-viewport  # run multiple
+ *   npx ts-node tests/run-tests.ts --concurrency 2           # limit to 2 parallel workers
+ *   npx ts-node tests/run-tests.ts --serial                  # force serial execution
  */
 
 import * as fs from "fs";
 import * as path from "path";
 import * as http from "http";
+import { ChildProcess, spawn } from "child_process";
 
 const MCP_HOST = "127.0.0.1";
 const MCP_PORT = 3399;
 const MCP_PATH = "/mcp";
 const MCP_BASE = `http://${MCP_HOST}:${MCP_PORT}${MCP_PATH}`;
+
+/** Track pool process so we can clean up on exit. */
+let poolProcess: ChildProcess | null = null;
+
+/** Check if the proxy pool is already listening. */
+const isPoolRunning = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const req = http.get(`http://${MCP_HOST}:${MCP_PORT}/mcp`, (res) => {
+      res.resume();
+      resolve(true);
+    });
+    req.on("error", () => resolve(false));
+    req.setTimeout(2000, () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+};
+
+/**
+ * Ensure the Electron pool proxy server is running.
+ * If not, build (if needed) and spawn it as a child process.
+ * Waits until the pool is healthy before returning.
+ */
+const ensurePoolRunning = async (): Promise<void> => {
+  if (await isPoolRunning()) {
+    console.log("  Pool already running on port " + MCP_PORT);
+    return;
+  }
+
+  console.log("  Pool not running. Starting proxy pool...");
+
+  // Build first if dist doesn't exist
+  const proxyJsPath = path.resolve(__dirname, "..", "dist", "electron", "pool", "proxy-server.js");
+  if (!fs.existsSync(proxyJsPath)) {
+    console.log("  Building project first (dist not found)...");
+    const esbuildScript = path.resolve(__dirname, "..", "esbuild.dev.mjs");
+    const buildProcess = spawn("node", [esbuildScript], {
+      cwd: path.resolve(__dirname, ".."),
+      stdio: "inherit",
+    });
+    await new Promise<void>((resolve, reject) => {
+      buildProcess.on("exit", (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`Build failed with exit code ${code}`));
+      });
+      buildProcess.on("error", reject);
+    });
+    console.log("  Build complete.");
+  }
+
+  // Spawn the pool proxy server
+  poolProcess = spawn("node", [proxyJsPath], {
+    cwd: path.resolve(__dirname, ".."),
+    stdio: "pipe",
+    env: { ...process.env, POOL_PORT: String(MCP_PORT) },
+  });
+
+  poolProcess.stdout?.on("data", (data: Buffer) => {
+    const msg = data.toString().trimEnd();
+    if (msg) console.log(`  [pool] ${msg}`);
+  });
+  poolProcess.stderr?.on("data", (data: Buffer) => {
+    const msg = data.toString().trimEnd();
+    if (msg) console.error(`  [pool:err] ${msg}`);
+  });
+  poolProcess.on("exit", (code, signal) => {
+    if (poolProcess) {
+      console.log(`  [pool] Process exited (code=${code}, signal=${signal})`);
+      poolProcess = null;
+    }
+  });
+
+  // Wait for pool to become healthy (up to 60s for Electron startup)
+  const startTime = Date.now();
+  const timeoutMs = 60_000;
+  const pollMs = 1000;
+
+  while (Date.now() - startTime < timeoutMs) {
+    if (await isPoolRunning()) {
+      console.log(`  Pool started successfully (${((Date.now() - startTime) / 1000).toFixed(1)}s)`);
+      return;
+    }
+    // Check if process died
+    if (poolProcess === null) {
+      throw new Error("Pool process exited before becoming healthy");
+    }
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
+
+  throw new Error(`Pool did not become healthy within ${timeoutMs / 1000}s`);
+};
+
+/** Stop the pool process if we started it. */
+const stopPool = (): void => {
+  if (poolProcess) {
+    console.log("\n  Stopping pool process...");
+    poolProcess.kill("SIGTERM");
+    poolProcess = null;
+  }
+};
 
 /**
  * Send an HTTP POST to MCP and read the SSE response until a JSON-RPC result
@@ -146,21 +254,33 @@ interface SuiteResult {
   readonly duration: number;
 }
 
-let requestId = 0;
-let previousUrl = "";
+/** Per-session state: each worker gets its own isolated context. */
+interface SessionContext {
+  readonly sessionId: string;
+  readonly workerId: number;
+  requestId: number;
+  previousUrl: string;
+}
 
-const nextId = (): number => ++requestId;
+const nextId = (ctx: SessionContext): number => ++ctx.requestId;
 
-const initSession = async (): Promise<string> => {
+const initSession = async (workerId: number): Promise<SessionContext> => {
+  const ctx: SessionContext = {
+    sessionId: "",
+    workerId,
+    requestId: workerId * 100_000, // offset to avoid ID collisions across workers
+    previousUrl: "",
+  };
+
   const { responseHeaders } = await mcpPost(
     {
       jsonrpc: "2.0",
-      id: nextId(),
+      id: nextId(ctx),
       method: "initialize",
       params: {
         protocolVersion: "2024-11-05",
         capabilities: {},
-        clientInfo: { name: "test-runner", version: "1.0" },
+        clientInfo: { name: `test-runner-worker-${workerId}`, version: "1.0" },
       },
     },
     {},
@@ -169,13 +289,13 @@ const initSession = async (): Promise<string> => {
 
   const sessionId = responseHeaders["mcp-session-id"] as string | undefined;
   if (!sessionId) {
-    throw new Error("Failed to get MCP session ID");
+    throw new Error(`Worker ${workerId}: Failed to get MCP session ID`);
   }
-  return sessionId;
+  return { ...ctx, sessionId };
 };
 
 const callTool = async (
-  sessionId: string,
+  ctx: SessionContext,
   toolName: string,
   args: Record<string, unknown>,
   timeoutMs: number = DEFAULT_TIMEOUT
@@ -183,11 +303,11 @@ const callTool = async (
   const { data } = await mcpPost(
     {
       jsonrpc: "2.0",
-      id: nextId(),
+      id: nextId(ctx),
       method: "tools/call",
       params: { name: toolName, arguments: args },
     },
-    { "mcp-session-id": sessionId },
+    { "mcp-session-id": ctx.sessionId },
     timeoutMs
   );
   const rpc = data as { result?: unknown; error?: { message?: string } };
@@ -408,7 +528,7 @@ const getToolTimeout = (toolName: string): number => {
 };
 
 const runStep = async (
-  sessionId: string,
+  ctx: SessionContext,
   step: TestStep,
   prevUrl: string
 ): Promise<StepResult & { url?: string }> => {
@@ -416,7 +536,7 @@ const runStep = async (
   const timeout = getToolTimeout(step.tool);
 
   try {
-    const result = await callTool(sessionId, step.tool, args, timeout);
+    const result = await callTool(ctx, step.tool, args, timeout);
 
     // Track URL changes
     const text = extractText(result);
@@ -492,18 +612,19 @@ const runStep = async (
 };
 
 const runCase = async (
-  sessionId: string,
+  ctx: SessionContext,
   testCase: TestCase
 ): Promise<CaseResult> => {
   const start = Date.now();
   const stepResults: Array<StepResult> = [];
-  let currentUrl = previousUrl;
+  let currentUrl = ctx.previousUrl;
   let caseStatus: "pass" | "fail" = "pass";
 
-  process.stdout.write(`    ${testCase.id}: ${testCase.name} ... `);
+  const tag = ctx.workerId >= 0 ? `[W${ctx.workerId}] ` : "";
+  process.stdout.write(`    ${tag}${testCase.id}: ${testCase.name} ... `);
 
   for (const step of testCase.steps) {
-    const result = await runStep(sessionId, step, currentUrl);
+    const result = await runStep(ctx, step, currentUrl);
     stepResults.push(result);
 
     if ("url" in result && result.url) {
@@ -516,7 +637,7 @@ const runCase = async (
     }
   }
 
-  previousUrl = currentUrl;
+  ctx.previousUrl = currentUrl;
   const duration = Date.now() - start;
 
   if (caseStatus === "pass") {
@@ -542,16 +663,17 @@ const runCase = async (
 };
 
 const runSuite = async (
-  sessionId: string,
+  ctx: SessionContext,
   suitePath: string
 ): Promise<SuiteResult> => {
   const suiteData = JSON.parse(
     fs.readFileSync(suitePath, "utf-8")
   ) as TestSuite;
 
-  console.log(`\n  Suite: ${suiteData.suite} (${suiteData.cases.length} cases)`);
-  console.log(`  ${suiteData.description}`);
-  console.log(`  ${"─".repeat(60)}`);
+  const tag = ctx.workerId >= 0 ? `[W${ctx.workerId}] ` : "";
+  console.log(`\n  ${tag}Suite: ${suiteData.suite} (${suiteData.cases.length} cases)`);
+  console.log(`  ${tag}${suiteData.description}`);
+  console.log(`  ${tag}${"─".repeat(60)}`);
 
   const start = Date.now();
   const caseResults: Array<CaseResult> = [];
@@ -559,16 +681,16 @@ const runSuite = async (
   let failed = 0;
 
   for (const testCase of suiteData.cases) {
-    const result = await runCase(sessionId, testCase);
+    const result = await runCase(ctx, testCase);
     caseResults.push(result);
     if (result.status === "pass") passed++;
     else failed++;
   }
 
   const duration = Date.now() - start;
-  console.log(`  ${"─".repeat(60)}`);
+  console.log(`  ${tag}${"─".repeat(60)}`);
   console.log(
-    `  Result: ${passed} passed, ${failed} failed (${(duration / 1000).toFixed(1)}s)`
+    `  ${tag}Result: ${passed} passed, ${failed} failed (${(duration / 1000).toFixed(1)}s)`
   );
 
   return {
@@ -581,16 +703,51 @@ const runSuite = async (
   };
 };
 
+/** Parse CLI arguments for concurrency and suite filters. */
+const parseArgs = (): { filters: ReadonlyArray<string> | null; concurrency: number } => {
+  const args = process.argv.slice(2);
+  let concurrency = 4;
+  let filters: ReadonlyArray<string> | null = null;
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--serial") {
+      concurrency = 1;
+    } else if (arg === "--concurrency" && i + 1 < args.length) {
+      concurrency = Math.max(1, parseInt(args[++i], 10) || 4);
+    } else if (!arg.startsWith("--")) {
+      filters = arg.split(",").map((s) => s.trim());
+    }
+  }
+
+  return { filters, concurrency };
+};
+
+/** Worker function: pulls suites from queue and runs them sequentially. */
+const runWorker = async (
+  ctx: SessionContext,
+  queue: Array<SuiteEntry>,
+  testsDir: string
+): Promise<ReadonlyArray<SuiteResult>> => {
+  const results: Array<SuiteResult> = [];
+
+  while (queue.length > 0) {
+    const entry = queue.shift();
+    if (!entry) break;
+    const suitePath = path.join(testsDir, entry.file);
+    const result = await runSuite(ctx, suitePath);
+    results.push(result);
+  }
+
+  return results;
+};
+
 const main = async (): Promise<void> => {
   const testsDir = path.resolve(__dirname);
   const indexPath = path.join(testsDir, "index.json");
   const index = JSON.parse(fs.readFileSync(indexPath, "utf-8")) as TestIndex;
 
-  // Parse CLI args for suite filter
-  const filterArg = process.argv[2];
-  const filters = filterArg
-    ? filterArg.split(",").map((s) => s.trim())
-    : null;
+  const { filters, concurrency } = parseArgs();
 
   const suitesToRun = filters
     ? index.suites.filter((s) => filters.includes(s.suite))
@@ -601,24 +758,38 @@ const main = async (): Promise<void> => {
     process.exit(1);
   }
 
+  // Actual worker count = min(concurrency, suites)
+  const workerCount = Math.min(concurrency, suitesToRun.length);
+  const mode = workerCount === 1 ? "serial" : `parallel (${workerCount} workers)`;
+
   console.log("=".repeat(70));
   console.log("  auto-test-view Test Runner");
   console.log(`  Suites: ${suitesToRun.length}, Cases: ${suitesToRun.reduce((a, s) => a + s.cases, 0)}`);
+  console.log(`  Mode: ${mode}`);
   console.log("=".repeat(70));
 
-  // Init MCP session
-  console.log("\n  Initializing MCP session...");
-  const sessionId = await initSession();
-  console.log(`  Session: ${sessionId}`);
+  // Ensure pool is running (auto-start Electron if needed)
+  console.log("\n  Checking pool status...");
+  await ensurePoolRunning();
 
-  const allResults: Array<SuiteResult> = [];
+  // Initialize worker sessions in parallel
+  console.log(`\n  Initializing ${workerCount} MCP session(s)...`);
+  const contexts = await Promise.all(
+    Array.from({ length: workerCount }, (_, i) => initSession(i))
+  );
+  for (const ctx of contexts) {
+    console.log(`  Worker ${ctx.workerId}: session ${ctx.sessionId}`);
+  }
+
+  // Shared mutable queue — workers pull from this as they finish suites
+  const queue: Array<SuiteEntry> = [...suitesToRun];
   const totalStart = Date.now();
 
-  for (const entry of suitesToRun) {
-    const suitePath = path.join(testsDir, entry.file);
-    const result = await runSuite(sessionId, suitePath);
-    allResults.push(result);
-  }
+  // Launch all workers in parallel; each pulls suites from the shared queue
+  const workerResults = await Promise.all(
+    contexts.map((ctx) => runWorker(ctx, queue, testsDir))
+  );
+  const allResults = workerResults.flat();
 
   const totalDuration = Date.now() - totalStart;
 
@@ -645,6 +816,7 @@ const main = async (): Promise<void> => {
 
   console.log(`\n  Total: ${totalPassed}/${totalCases} passed, ${totalFailed} failed`);
   console.log(`  Duration: ${(totalDuration / 1000).toFixed(1)}s`);
+  console.log(`  Workers: ${workerCount}`);
   console.log("=".repeat(70));
 
   // Write results to file
@@ -652,15 +824,22 @@ const main = async (): Promise<void> => {
   fs.writeFileSync(reportPath, JSON.stringify({
     timestamp: new Date().toISOString(),
     duration: totalDuration,
+    workers: workerCount,
     summary: { total: totalCases, passed: totalPassed, failed: totalFailed },
     suites: allResults,
   }, null, 2));
   console.log(`\n  Results saved to ${reportPath}`);
 
+  stopPool();
   process.exit(totalFailed > 0 ? 1 : 0);
 };
 
+// Clean up pool on unexpected exit
+process.on("SIGINT", () => { stopPool(); process.exit(130); });
+process.on("SIGTERM", () => { stopPool(); process.exit(143); });
+
 main().catch((err) => {
   console.error("Test runner error:", err);
+  stopPool();
   process.exit(1);
 });

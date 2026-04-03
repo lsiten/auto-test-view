@@ -391,19 +391,43 @@ LLM_MODEL=claude-sonnet-4-20250514
 
 Also supports OpenAI, DashScope (Qwen), and any OpenAI-compatible endpoint. See `.env.example`.
 
-### Starting the Server
+### Starting the Server (Auto-Start Pool)
+
+The Electron instance pool supports auto-start. Before using any MCP tool, check if the pool is running and start it if needed:
+
+```bash
+# Check if pool is already running
+curl -s http://127.0.0.1:3399/mcp > /dev/null 2>&1
+
+# If not running, build and start the pool
+node esbuild.dev.mjs && node dist/electron/pool/proxy-server.js
+```
+
+**Auto-start in skills/scripts**: When executing MCP operations, always check connectivity first. If the pool is not running, start it automatically:
+
+1. Test connection: `curl -sf http://127.0.0.1:3399/mcp` or call `get_status`
+2. If connection fails:
+   a. Build if `dist/electron/pool/proxy-server.js` does not exist: `node esbuild.dev.mjs`
+   b. Start pool in background: `node dist/electron/pool/proxy-server.js &`
+   c. Wait for health check to pass (poll every 1s, timeout 60s)
+3. Proceed with MCP operations
+
+The pool manages multiple Electron instances automatically:
+- Default: min 1, max = CPU count
+- Idle instances above minimum are reclaimed after 5 minutes
+- Crashed instances are auto-restarted if below minimum
+
+**For E2E test runner**: `npx ts-node tests/run-tests.ts` auto-starts the pool if not running. No manual startup needed.
+
+### First-time Setup
 
 ```bash
 cp .env.example .env   # Edit .env with your LLM credentials
-npm run dev             # Start Electron + MCP server
 ```
-
-The Electron app will inject page-agent and start MCP server on http://127.0.0.1:3399/mcp.
 
 ### MCP Configuration
 
-1. Start the Electron app first: `npm run dev`
-2. Add to your AI client's MCP settings:
+Add to your AI client's MCP settings (pool will be auto-started):
 ```json
 {
   "mcpServers": {

@@ -139,12 +139,14 @@
 
 ## E2E 执行策略
 
-1. 确认 auto-test-view MCP 服务可用（尝试 `get_status`）
-2. 按 suite 文件顺序逐个执行
+1. 检测 MCP pool 连接（`curl -sf http://127.0.0.1:3399/mcp` 或 `get_status`）
+   - 连接失败 → 自动启动 pool：`node esbuild.dev.mjs && node dist/electron/pool/proxy-server.js &`
+   - 等待 pool 健康检查通过（轮询，超时 60s）
+2. 按 suite 文件顺序逐个执行（支持 `--concurrency N` 并行）
 3. 每个 case 内按 steps 顺序执行
 4. 每个 step：调用 MCP tool -> 检查 assert -> 记录结果
 5. step 失败时：截图保存 -> 记录错误 -> 继续下一个 case（不中断 suite）
-6. 全部执行完毕 -> 汇总结果
+6. 全部执行完毕 -> 汇总结果 -> 停止自动启动的 pool（如果是由 runner 启动的）
 
 ## 常见 E2E 模式
 
