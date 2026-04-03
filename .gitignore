@@ -6,3 +6,4 @@ dist/
 !electron/**/*.d.ts
 .auto-test-view/
 .venv/
+__pycache__/
